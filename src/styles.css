@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  /* ~10% smaller than the original 17px (matches ~90% browser zoom) — Tailwind's
+     spacing/sizing/font-size/border-radius scale is rem-based, so this one change
+     shrinks text, padding, margin, gap, and component heights uniformly everywhere,
+     while every ratio between elements stays exactly the same. */
+  font-size: 15.3px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Sarabun', Tahoma, sans-serif;
+}
+
+/* react-select overrides to match the Tailwind input styling used across the app */
+.rs__control {
+  /* Scaled down to match the root font-size reduction above — react-select renders
+     outside Tailwind's rem-based classes, so this hardcoded height needs its own ~10%
+     cut to keep tracking the TextField height (h-11) it's designed to match. */
+  min-height: 40px !important;
+  border-radius: 1rem !important;
+  border-color: #dbe3ee !important;
+  background-color: #f8fafc !important;
+  box-shadow: none !important;
+  font-size: 0.875rem !important;
+}
+.rs__menu {
+  font-size: 0.875rem !important;
+}
+.rs__control--is-focused {
+  border-color: #0D41E1 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgb(13 65 225 / 0.15) !important;
+}
+.rs__placeholder,
+.rs__single-value {
+  color: #33465f !important;
+}
+.rs__indicator-separator {
+  background-color: #e1e7f0 !important;
+}
+.rs__menu {
+  z-index: 30 !important;
+}
+.field-error .rs__control {
+  border-color: #fda4af !important;
+  background-color: rgb(254 242 242 / 0.4) !important;
+}
