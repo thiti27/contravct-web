@@ -23,7 +23,13 @@ export default function RadioGroup({ label, required, error, options, value, onC
               disabled={disabled}
               className="h-4 w-4 border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed"
             />
-            {opt.label}
+            <span>
+              {opt.label}
+              {/* Always slate-400/normal weight, even when opt.label is bold/brand-colored
+                  above (selected state) — keeps the Thai caption visually secondary instead
+                  of competing with the English option text. */}
+              {opt.description && <span className="ml-1.5 font-normal text-slate-400">({opt.description})</span>}
+            </span>
           </label>
         ))}
       </div>

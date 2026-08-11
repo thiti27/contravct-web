@@ -1,61 +1,85 @@
-import { useState } from 'react';
-import { FileText, Save, Trash2, UploadCloud, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { FileText, Save, Trash2, Upload, UploadCloud, X } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import ConfirmModal from '../ui/ConfirmModal';
 import WaitingModal from '../ui/WaitingModal';
 import ResultModal from '../ui/ResultModal';
 import RadioGroup from '../ui/RadioGroup';
 import DateField from '../ui/DateField';
-import FormSelect from '../ui/FormSelect';
-import TextField from '../ui/TextField';
+import FieldShell from '../ui/FieldShell';
 import NoteAlert from '../ui/NoteAlert';
 import { useAuth } from '../../context/AuthContext';
 import { uploadFiles, uploadSignedContract } from '../../lib/api';
 
-// English first, Thai in parentheses after every label/placeholder/note — per the
-// bilingual UI convention for this modal (users skim the English, read the Thai
-// when they need to double-check).
+// English-only labels/buttons/messages, matching the rest of the app (EditRequestModal's
+// footer copy, RequestFormFields section titles, etc.) — Thai lives only as a smaller,
+// muted secondary hint under a field's label (via FieldShell's `hint` prop) or next to a
+// radio option (via RadioGroup's `description`), never inline in the same size/weight as
+// the English. Keeps every label reading as one clear line instead of two scripts
+// competing for attention.
 const T = {
-  signedContractFile: 'Signed Contract File (ไฟล์สัญญาที่ลงนามแล้ว)',
-  chooseFile: 'Choose the signed contract PDF ',
-  browse: 'Browse (เลือกไฟล์)',
-  contractType: 'Contract Type (ประเภทสัญญา)',
-  hasExpiry: 'Contract has an expiry date (สัญญามีวันหมดอายุ)',
-  noExpiry: 'Contract has no expiry date (สัญญาไม่มีวันหมดอายุ)',
-  startDate: 'Contract Start Date (วันที่เริ่มมีผลของสัญญา)',
-  endDate: 'Contract End Date (วันสิ้นสุดสัญญา)',
-  reminder: 'Reminder Before Expiry (แจ้งเตือนก่อนสัญญาหมดอายุ)',
-  selectReminder: 'Select reminder ',
-  renewal: 'Renewal (การต่ออายุสัญญา)',
-  autoRenewal: 'Auto Renewal (ต่ออายุอัตโนมัติ)',
-  noAutoRenewal: 'No Auto Renewal (ไม่มีการต่ออายุอัตโนมัติ)',
-  renewEvery: 'Renew automatically every ____ year(s) (ต่ออายุอัตโนมัติทุก ____ ปี)',
-  noExpiryInfo: 'This contract has no expiry date. (สัญญานี้ไม่มีวันหมดอายุ)',
-  modalTitle: 'Upload Sign Contract  ',
-  save: 'Save ',
-  cancel: 'Cancel  ',
-  confirmTitle: 'Confirm Save ',
-  confirmMessage: 'Are you sure you want to save this signed contract?  ',
-  successMessage: 'Signed contract has been uploaded successfully. ',
-  errorMessage: 'Failed to upload the signed contract. Please try again.  ',
-  errFileRequired: 'Please select the signed contract PDF file.  ',
-  errOneFileOnly: 'You can upload only one file. (สามารถอัปโหลดได้เพียง 1 ไฟล์เท่านั้น)',
-  errPdfOnly: 'Only PDF (.pdf) files are supported. (รองรับเฉพาะไฟล์ PDF (.pdf) เท่านั้น)',
-  errRequired: 'This field is required.  ',
-  errEndAfterStart: 'Contract End Date must be after Contract Start Date. (วันสิ้นสุดสัญญาต้องอยู่หลังวันที่เริ่มมีผลของสัญญา)',
-  errRenewalChoice: 'Select either Auto Renewal or No Auto Renewal. (กรุณาเลือกต่ออายุอัตโนมัติ หรือ ไม่มีการต่ออายุอัตโนมัติ)',
-  yearsPlaceholder: 'e.g. 1 (เช่น 1)',
+  // fileLabel: 'Signed Contract File',
+  // fileHint: 'ไฟล์สัญญาที่ลงนามแล้ว',
+  chooseFile: 'Choose the signed contract PDF',
+  browse: 'Browse',
+  fileNote: 'The file must contain all signed pages in a single document.',
+  fileNoteHint: 'ไฟล์ต้องรวมหน้าสัญญาที่ลงนามครบถ้วนทั้งหมดไว้ในไฟล์เดียว',
+
+  sectionExpiry: 'Expiry & Renewal',
+  // conditionLabel: 'Condition',
+  hasExpiry: 'Contract has an expiry date',
+  hasExpiryHint: 'สัญญามีวันหมดอายุ',
+  noExpiry: 'Contract has no expiry date',
+  noExpiryHint: 'สัญญาไม่มีวันหมดอายุ',
+
+  startDate: 'Contract Start Date',
+  // startDateHint: 'วันที่เริ่มมีผลของสัญญา',
+  endDate: 'Contract End Date',
+  // endDateHint: 'วันสิ้นสุดสัญญา',
+
+  renewal: 'Renewal',
+  autoRenewal: 'Auto Renewal',
+  autoRenewalHint: 'ต่ออายุอัตโนมัติ',
+  noAutoRenewal: 'No Auto Renewal',
+  noAutoRenewalHint: 'ไม่มีการต่ออายุอัตโนมัติ',
+  // renewalPeriod: 'Renewal Period',
+  // renewEveryHint: 'ต่ออายุอัตโนมัติทุก ____ ปี',
+  reminder: 'Reminder Before Expiry',
+  // reminderHint: 'แจ้งเตือนก่อนสัญญาหมดอายุ',
+
+  noExpiryInfo: 'This contract has no expiry date.',
+  noExpiryInfoHint: 'สัญญานี้ไม่มีวันหมดอายุ',
+
+  modalTitle: 'Upload Sign Contract',
+  save: 'Upload',
+  cancel: 'Cancel',
+  confirmTitle: 'Confirm Upload',
+  confirmMessage: 'Are you sure you want to save this signed contract?',
+  successMessage: 'Signed contract has been uploaded successfully.',
+  errorMessage: 'Failed to upload the signed contract. Please try again.',
+  errFileRequired: 'Please select the signed contract PDF file.',
+  errOneFileOnly: 'You can upload only one file.',
+  errPdfOnly: 'Only PDF (.pdf) files are supported.',
+  errRequired: 'This field is required.',
+  errEndAfterStart: 'Contract End Date must be after Contract Start Date.',
+  errRenewalChoice: 'Select either Auto Renewal or No Auto Renewal.',
 };
 
 const EXPIRY_OPTIONS = [
-  { value: 'has_expiry', label: T.hasExpiry },
-  { value: 'no_expiry', label: T.noExpiry },
+  { value: 'has_expiry', label: T.hasExpiry, description: T.hasExpiryHint },
+  { value: 'no_expiry', label: T.noExpiry, description: T.noExpiryHint },
 ];
 
 const AUTO_RENEWAL_OPTIONS = [
-  { value: 'auto', label: T.autoRenewal },
-  { value: 'none', label: T.noAutoRenewal },
+  { value: 'auto', label: T.autoRenewal, description: T.autoRenewalHint },
+  { value: 'none', label: T.noAutoRenewal, description: T.noAutoRenewalHint },
 ];
+
+// Bold navy divider between the File and Expiry/Renewal groups — same weight/color
+// ContractInfoSection uses for its section headers, scaled down for this compact modal.
+function SectionTitle({ children }) {
+  return <h3 className="border-b border-slate-100 pb-2 text-sm font-bold text-navy">{children}</h3>;
+}
 
 const REMINDER_OPTIONS = [
   { value: 15, label: '15 Days' },
@@ -120,6 +144,17 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
   };
 
   const removeFile = () => setFile(null);
+
+  // Lets the user open/download the exact file they picked, to double-check it before
+  // Upload — file.name alone isn't proof, and the file hasn't reached the server yet at
+  // this point so there's nothing else to link to. Revoked on every change so picking a
+  // new file (or closing the modal) doesn't leak the previous blob URL.
+  const fileUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => {
+    return () => {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+    };
+  }, [fileUrl]);
 
   const validate = () => {
     const next = {};
@@ -192,7 +227,8 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
         disabled={saving}
         className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
       >
-        <Save size={16} /> {T.save}
+        
+        <Upload  size={16} /> {T.save}
       </button>
       <button
         type="button"
@@ -207,21 +243,25 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
 
   return (
     <>
-      <FormModal open title={T.modalTitle} footer={footer} onClose={onClose} closeDisabled={saving}>
-        <div className="mx-auto max-w-2xl space-y-6">
-          <div className="text-sm text-slate-500">
+      <FormModal open size="boxed" title={T.modalTitle +' : ' +contract.contractNo} footer={footer} onClose={onClose} closeDisabled={saving}>
+        <div className="space-y-6">
+          {/* <div className="text-sm text-slate-500">
             <span className="font-semibold text-navy">{contract.supplier}</span>
             {contract.contractNo && contract.contractNo !== '-' && <span> — {contract.contractNo}</span>}
-          </div>
+          </div> */}
 
           <div>
-            <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">
-              {T.signedContractFile} <span className="text-rose-500">*</span>
-            </span>
+ 
             {file ? (
               <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                 <FileText size={17} className="shrink-0 text-brand-600" />
-                <span className="flex-1 truncate text-slate-700">{file.name}</span>
+                <a
+                  href={fileUrl}
+                  download={file.name}
+                  className="flex-1 truncate text-blue-600 underline hover:text-blue-700"
+                >
+                  {file.name}
+                </a>
                 <button
                   type="button"
                   onClick={removeFile}
@@ -234,109 +274,130 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
               <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3">
                 <UploadCloud size={18} className="shrink-0 text-slate-400" />
                 <span className="flex-1 text-sm text-slate-500">{T.chooseFile}</span>
-                <span className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                <span className="shrink-0 rounded-2xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-soft hover:bg-brand-700">
                   {T.browse}
                 </span>
-                <input type="file" accept=".pdf,application/pdf" multiple className="hidden" onChange={handleFileChange} />
+                <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFileChange} />
               </label>
             )}
-            {(fileError || errors.file) && <p className="mt-1 text-xs font-medium text-rose-500">{fileError || errors.file}</p>}
+            {fileError || errors.file ? (
+              <p className="mt-1 text-xs font-medium text-rose-500">{fileError || errors.file}</p>
+            ) : (
+              <p className="mt-1 text-xs text-slate-400">{T.fileHint}</p>
+            )}
 
-            <div className="mt-3">
+            {/* <div className="mt-3">
               <NoteAlert>
-                Note: Upload only one signed contract file in PDF (.pdf) format. The file must contain all signed pages in a single document.
-                <br />
-                (หมายเหตุ: สามารถอัปโหลดได้เพียง 1 ไฟล์ในรูปแบบ PDF (.pdf) เท่านั้น
-                และไฟล์ต้องรวมหน้าสัญญาที่ลงนามครบถ้วนทั้งหมดไว้ในไฟล์เดียว)
+                {T.fileNote}
+                <span className="mt-0.5 block text-xs text-amber-600/80">{T.fileNoteHint}</span>
               </NoteAlert>
-            </div>
+            </div> */}
           </div>
 
-          <RadioGroup
-            label={T.contractType}
-            options={EXPIRY_OPTIONS}
-            value={form.expiryChoice}
-            onChange={v => {
-              // Switching to "no expiry" hides every expiry/renewal field below —
-              // also clear whatever was entered so stale values can't resurface if
-              // the user switches back, and can't leak into Save (handleConfirmYes
-              // already nulls these when !hasExpiry, but an empty form is also just
-              // more honest about "nothing decided yet" if they reconsider).
-              if (v === 'no_expiry') {
-                setForm(f => ({
-                  ...f,
-                  expiryChoice: v,
-                  contractStartDate: '',
-                  contractEndDate: '',
-                  autoRenewalChoice: null,
-                  autoRenewalYears: '',
-                  reminderBeforeExpiryDays: '',
-                }));
-                setErrors({});
-              } else {
-                setField('expiryChoice', v);
-              }
-            }}
-            name="expiryChoice"
-          />
+          <div className="space-y-5">
+            <SectionTitle>{T.sectionExpiry}</SectionTitle>
 
-          {hasExpiry ? (
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <DateField
-                  label={T.startDate}
+            <RadioGroup
+              label={T.conditionLabel}
+              options={EXPIRY_OPTIONS}
+              value={form.expiryChoice}
+              onChange={v => {
+                // Switching to "no expiry" hides every expiry/renewal field below —
+                // also clear whatever was entered so stale values can't resurface if
+                // the user switches back, and can't leak into Save (handleConfirmYes
+                // already nulls these when !hasExpiry, but an empty form is also just
+                // more honest about "nothing decided yet" if they reconsider).
+                if (v === 'no_expiry') {
+                  setForm(f => ({
+                    ...f,
+                    expiryChoice: v,
+                    contractStartDate: '',
+                    contractEndDate: '',
+                    autoRenewalChoice: null,
+                    autoRenewalYears: '',
+                    reminderBeforeExpiryDays: '',
+                  }));
+                  setErrors({});
+                } else {
+                  setField('expiryChoice', v);
+                }
+              }}
+              name="expiryChoice"
+            />
+
+            {hasExpiry ? (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <DateField
+                    label={T.startDate}
+                    hint={T.startDateHint}
+                    required
+                    value={form.contractStartDate}
+                    onChange={e => setField('contractStartDate', e.target.value)}
+                    error={errors.contractStartDate}
+                  />
+                  <DateField
+                    label={T.endDate}
+                    hint={T.endDateHint}
+                    required
+                    value={form.contractEndDate}
+                    onChange={e => setField('contractEndDate', e.target.value)}
+                    error={errors.contractEndDate}
+                  />
+                </div>
+
+                <RadioGroup
+                  label={T.renewal}
                   required
-                  value={form.contractStartDate}
-                  onChange={e => setField('contractStartDate', e.target.value)}
-                  error={errors.contractStartDate}
+                  options={AUTO_RENEWAL_OPTIONS}
+                  value={form.autoRenewalChoice}
+                  onChange={v => setField('autoRenewalChoice', v)}
+                  name="autoRenewalChoice"
+                  error={errors.autoRenewalChoice}
                 />
-                <DateField
-                  label={T.endDate}
-                  required
-                  value={form.contractEndDate}
-                  onChange={e => setField('contractEndDate', e.target.value)}
-                  error={errors.contractEndDate}
-                />
+
+                {form.autoRenewalChoice === 'auto' && (
+                  <>
+                   <RadioGroup
+                      label={T.reminder}
+                      required
+                      options={REMINDER_OPTIONS}
+                      value={form.reminderBeforeExpiryDays}
+                      onChange={v => setField('reminderBeforeExpiryDays', v)}
+                      name="reminderBeforeExpiryDays"
+                      error={errors.reminderBeforeExpiryDays}
+                    />
+                    
+                    <FieldShell label={T.renewalPeriod} hint={T.renewEveryHint} required error={errors.autoRenewalYears}>
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 text-sm text-slate-600">Renew automatically every</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={form.autoRenewalYears}
+                          onChange={e => setField('autoRenewalYears', e.target.value)}
+                          placeholder="1"
+                          className={`h-11 w-20 shrink-0 rounded-2xl border px-3 text-center text-sm text-slate-700 outline-none transition-colors focus:bg-white focus:ring-4 ${
+                            errors.autoRenewalYears
+                              ? 'border-rose-300 bg-rose-50/40 focus:border-rose-400 focus:ring-rose-500/10'
+                              : 'border-slate-200 bg-slate-50 focus:border-brand-500 focus:ring-brand-500/10'
+                          }`}
+                        />
+                        <span className="shrink-0 text-sm text-slate-600">year(s)</span>
+                      </div>
+                    </FieldShell>
+
+                   
+                  </>
+                )}
               </div>
-
-              <RadioGroup
-                label={T.renewal}
-                required
-                options={AUTO_RENEWAL_OPTIONS}
-                value={form.autoRenewalChoice}
-                onChange={v => setField('autoRenewalChoice', v)}
-                name="autoRenewalChoice"
-                error={errors.autoRenewalChoice}
-              />
-
-              {form.autoRenewalChoice === 'auto' && (
-                <>
-                  <TextField
-                    label={T.renewEvery}
-                    required
-                    type="number"
-                    min="1"
-                    value={form.autoRenewalYears}
-                    onChange={e => setField('autoRenewalYears', e.target.value)}
-                    error={errors.autoRenewalYears}
-                    placeholder={T.yearsPlaceholder}
-                  />
-
-                  <FormSelect
-                    label={T.reminder}
-                    required
-                    options={REMINDER_OPTIONS}
-                    value={form.reminderBeforeExpiryDays}
-                    onChange={v => setField('reminderBeforeExpiryDays', v)}
-                    error={errors.reminderBeforeExpiryDays}
-                    placeholder={T.selectReminder}
-                  />
-                </>
-              )}
-            </div>
-          ) : (
-            <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">{T.noExpiryInfo}</p>
-          )}
+            ) : (
+              <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                {T.noExpiryInfo}
+                <span className="mt-0.5 block text-xs text-slate-400">{T.noExpiryInfoHint}</span>
+              </p>
+            )}
+          </div>
         </div>
       </FormModal>
 

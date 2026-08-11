@@ -1,5 +1,8 @@
 const TONE_BY_STATUS = status => {
-  if (status.includes('Draft') || status === 'Active' || status === 'Approve' || status === 'Signed' || status === 'Check') return 'green';
+  // Signed gets its own blue tone, split out from the green group below, so it reads as
+  // visibly distinct at a glance instead of blending in with Draft/Active/Approve/Check.
+  if (status === 'Signed') return 'blue';
+  if (status.includes('Draft') || status === 'Active' || status === 'Approve' || status === 'Check') return 'green';
   if (status.includes('Waiting') || status.includes('Expiry') || status === 'Returned' || status === 'Return') return 'orange';
   if (
     status === 'Rejected' ||
@@ -15,6 +18,7 @@ const TONE_BY_STATUS = status => {
 
 const TONE_CLASSES = {
   green: 'bg-emerald-50 text-emerald-600',
+  blue: 'bg-brand-50 text-brand-600',
   orange: 'bg-amber-50 text-amber-600',
   red: 'bg-rose-50 text-rose-600',
   gray: 'bg-slate-100 text-slate-500',
@@ -22,6 +26,7 @@ const TONE_CLASSES = {
 
 const DOT_CLASSES = {
   green: 'bg-emerald-500',
+  blue: 'bg-brand-500',
   orange: 'bg-amber-500',
   red: 'bg-rose-500',
   gray: 'bg-slate-400',

@@ -3,6 +3,7 @@ import ContractFilters, { EMPTY_FILTERS } from './ContractFilters';
 import ContractTable from './ContractTable';
 import EditRequestModal from './EditRequestModal';
 import UploadSignContractModal from './UploadSignContractModal';
+import LinkedRequestModal from './LinkedRequestModal';
 import Pagination from '../ui/Pagination';
 import PageContainer from '../layout/PageContainer';
 import { useContracts } from '../../hooks/useContracts';
@@ -39,7 +40,10 @@ export default function ContractListPage({
   const [editingId, setEditingId] = useState(null);
   const [viewingId, setViewingId] = useState(null);
   const [uploadSignContract, setUploadSignContract] = useState(null);
+  const [linkedRequest, setLinkedRequest] = useState(null); // { masterContract, remark } | null
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const openLinkedRequest = remark => masterContract => setLinkedRequest({ masterContract, remark });
 
   // Reset filters + page whenever the scope changes (i.e. switching tabs)
   useEffect(() => {
@@ -102,6 +106,10 @@ export default function ContractListPage({
               enableEdit={enableEdit}
               onEdit={setEditingId}
               onUploadSign={setUploadSignContract}
+              onRenew={openLinkedRequest('renew')}
+              onAmend={openLinkedRequest('amend')}
+              onClaimNote={openLinkedRequest('claim')}
+              onTerminate={openLinkedRequest('terminate')}
               approvalMode={approvalMode || legalMode}
               onView={setViewingId}
               viewableStatuses={viewableStatuses}
@@ -149,6 +157,15 @@ export default function ContractListPage({
         <UploadSignContractModal
           contract={uploadSignContract}
           onClose={() => setUploadSignContract(null)}
+          onSaved={() => setRefreshKey(k => k + 1)}
+        />
+      )}
+
+      {linkedRequest && (
+        <LinkedRequestModal
+          masterContract={linkedRequest.masterContract}
+          remark={linkedRequest.remark}
+          onClose={() => setLinkedRequest(null)}
           onSaved={() => setRefreshKey(k => k + 1)}
         />
       )}

@@ -1,6 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CalendarDays, Download, Eye, MoreVertical, Pencil, UploadCloud } from 'lucide-react';
+import {
+  Ban,
+  CalendarDays,
+  Download,
+  Eye,
+  FileEdit,
+  FilePlus2,
+  MessageSquare,
+  MoreVertical,
+  Pencil,
+  RefreshCw,
+  UploadCloud,
+  XCircle,
+} from 'lucide-react';
 import StatusBadge from '../ui/StatusBadge';
 import ContractNoCell from '../ui/ContractNoCell';
 import { formatDateTime } from '../../lib/formatDate';
@@ -41,7 +54,26 @@ function buildRowMeta(contracts) {
 // Rendered through a portal (like react-select's menuPortalTarget elsewhere in this
 // app) so the menu escapes the table's overflow-x-auto clipping box instead of being
 // cut off/sunk behind it.
-function MoreMenu({ anchorRect, showEdit, onEdit, showView, onView, onUploadSign, showUploadSign, onClose, restricted }) {
+function MoreMenu({
+  anchorRect,
+  showEdit,
+  onEdit,
+  showCancel,
+  onCancel,
+  showView,
+  onView,
+  onUploadSign,
+  showUploadSign,
+  showSignedActions,
+  onRenew,
+  onAmend,
+  onClaimNote,
+  onTerminate,
+  showLegalComment,
+  onLegalComment,
+  onClose,
+  restricted,
+}) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -77,6 +109,19 @@ function MoreMenu({ anchorRect, showEdit, onEdit, showView, onView, onUploadSign
           <Pencil size={14} /> Edit
         </button>
       )}
+      {showCancel && (
+        <button
+          type="button"
+          onClick={restricted ? undefined : onCancel}
+          disabled={restricted}
+          title={restricted ? 'You do not have permission to access this contract.' : undefined}
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+            restricted ? 'cursor-not-allowed text-slate-300' : 'text-rose-600 hover:bg-rose-50'
+          }`}
+        >
+          <XCircle size={14} /> Cancel
+        </button>
+      )}
       {showView && (
         <button
           type="button"
@@ -101,12 +146,96 @@ function MoreMenu({ anchorRect, showEdit, onEdit, showView, onView, onUploadSign
           <UploadCloud size={14} /> Upload Sign Contract
         </button>
       )}
+      {showSignedActions && (
+        <>
+          <button
+            type="button"
+            onClick={restricted ? undefined : onRenew}
+            disabled={restricted}
+            title={restricted ? 'You do not have permission to access this contract.' : undefined}
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+              restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <RefreshCw size={14} /> Renew
+          </button>
+          <button
+            type="button"
+            onClick={restricted ? undefined : onAmend}
+            disabled={restricted}
+            title={restricted ? 'You do not have permission to access this contract.' : undefined}
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+              restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <FileEdit size={14} /> Amend
+          </button>
+          <button
+            type="button"
+            onClick={restricted ? undefined : onClaimNote}
+            disabled={restricted}
+            title={restricted ? 'You do not have permission to access this contract.' : undefined}
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+              restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <FilePlus2 size={14} /> Claim Note
+          </button>
+          <button
+            type="button"
+            onClick={restricted ? undefined : onTerminate}
+            disabled={restricted}
+            title={restricted ? 'You do not have permission to access this contract.' : undefined}
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+              restricted ? 'cursor-not-allowed text-slate-300' : 'text-rose-600 hover:bg-rose-50'
+            }`}
+          >
+            <Ban size={14} /> Terminate
+          </button>
+        </>
+      )}
+      {/* Sibling of showSignedActions (not nested inside it) so this lands right after
+          Terminate for Signed rows, but also right after Upload Sign Contract for
+          Drafted rows — Legal Review covers both statuses (see LEGAL_REVIEW_STATUSES),
+          and each status renders nothing else between its own last item and this one. */}
+      {showLegalComment && (
+        <button
+          type="button"
+          onClick={restricted ? undefined : onLegalComment}
+          disabled={restricted}
+          title={restricted ? 'You do not have permission to access this contract.' : undefined}
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+            restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <MessageSquare size={14} /> Legal Comment
+        </button>
+      )}
     </div>,
     document.body
   );
 }
 
-function RowActions({ contractNo, showEdit, onEdit, showView, showUploadSign, onUploadSign, approvalMode, onView, restricted }) {
+function RowActions({
+  contractNo,
+  showEdit,
+  onEdit,
+  showCancel,
+  onCancel,
+  showView,
+  showUploadSign,
+  onUploadSign,
+  showSignedActions,
+  onRenew,
+  onAmend,
+  onClaimNote,
+  onTerminate,
+  showLegalComment,
+  onLegalComment,
+  approvalMode,
+  onView,
+  restricted,
+}) {
   const downloadable = contractNo && contractNo !== '-' && !restricted;
   const [anchorRect, setAnchorRect] = useState(null);
   const btnRef = useRef(null);
@@ -143,7 +272,7 @@ function RowActions({ contractNo, showEdit, onEdit, showView, showUploadSign, on
           why) — otherwise it'd be a dead click. Filled + colored, not just an outlined
           icon, so it reads as a clickable action next to Download instead of a faint
           decoration users overlook. */}
-      {(showEdit || showView || restricted) && (
+      {(showEdit || showView || showSignedActions || showCancel || showLegalComment || restricted) && (
         <button
           ref={btnRef}
           type="button"
@@ -155,7 +284,7 @@ function RowActions({ contractNo, showEdit, onEdit, showView, showUploadSign, on
           <MoreVertical size={17} />
         </button>
       )}
-      {anchorRect && (showEdit || showView) && (
+      {anchorRect && (showEdit || showView || showSignedActions || showCancel || showLegalComment) && (
         <MoreMenu
           anchorRect={anchorRect}
           onClose={() => setAnchorRect(null)}
@@ -163,6 +292,11 @@ function RowActions({ contractNo, showEdit, onEdit, showView, showUploadSign, on
           onEdit={() => {
             setAnchorRect(null);
             onEdit?.();
+          }}
+          showCancel={showCancel}
+          onCancel={() => {
+            setAnchorRect(null);
+            onCancel?.();
           }}
           showView={showView}
           onView={() => {
@@ -173,6 +307,28 @@ function RowActions({ contractNo, showEdit, onEdit, showView, showUploadSign, on
           onUploadSign={() => {
             setAnchorRect(null);
             onUploadSign?.();
+          }}
+          showSignedActions={showSignedActions}
+          onRenew={() => {
+            setAnchorRect(null);
+            onRenew?.();
+          }}
+          onAmend={() => {
+            setAnchorRect(null);
+            onAmend?.();
+          }}
+          onClaimNote={() => {
+            setAnchorRect(null);
+            onClaimNote?.();
+          }}
+          onTerminate={() => {
+            setAnchorRect(null);
+            onTerminate?.();
+          }}
+          showLegalComment={showLegalComment}
+          onLegalComment={() => {
+            setAnchorRect(null);
+            onLegalComment?.();
           }}
           restricted={restricted}
         />
@@ -188,7 +344,13 @@ export default function ContractTable({
   variant = 'job',
   enableEdit = false,
   onEdit,
+  onCancel,
   onUploadSign,
+  onRenew,
+  onAmend,
+  onClaimNote,
+  onTerminate,
+  onLegalComment,
   approvalMode = false,
   onView,
   viewableStatuses = [],
@@ -317,9 +479,18 @@ export default function ContractTable({
                       contractNo={contract.contractNo}
                       showEdit={enableEdit && EDITABLE_STATUSES.includes(contract.status)}
                       onEdit={() => onEdit?.(contract.id)}
+                      showCancel={enableEdit && contract.status === 'Drafted'}
+                      onCancel={() => onCancel?.(contract)}
                       showView={viewableStatuses.includes(contract.status)}
                       showUploadSign={enableEdit && contract.status === 'Drafted'}
                       onUploadSign={() => onUploadSign?.(contract)}
+                      showSignedActions={contract.status === 'Signed'}
+                      onRenew={() => onRenew?.(contract)}
+                      onAmend={() => onAmend?.(contract)}
+                      onClaimNote={() => onClaimNote?.(contract)}
+                      onTerminate={() => onTerminate?.(contract)}
+                      showLegalComment={(contract.status === 'Signed' || contract.status === 'Drafted') && !!user?.legal}
+                      onLegalComment={() => onLegalComment?.(contract)}
                       approvalMode={approvalMode}
                       onView={() => onView?.(contract.id)}
                       restricted={restricted}

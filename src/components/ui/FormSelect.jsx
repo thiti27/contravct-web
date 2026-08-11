@@ -12,6 +12,11 @@ export default function FormSelect({
   onChange,
   isClearable = false,
   isDisabled = false,
+  isSearchable = false,
+  // ~3 options tall by default (react-select's default option row is ~38px) — callers
+  // with long lists (e.g. Reminder Before Expiry) pass a smaller value than the default
+  // 190 so the menu visibly scrolls after a few items instead of growing to fit them all.
+  maxMenuHeight = 190,
   placeholder = 'เลือก...',
 }) {
   const opts = options.map(o => (typeof o === 'string' ? { value: o, label: o } : o));
@@ -21,7 +26,7 @@ export default function FormSelect({
       <div className={error ? 'field-error' : ''}>
         <Select
           classNamePrefix="rs"
-          isSearchable={false}
+          isSearchable={isSearchable}
           isClearable={isClearable}
           isDisabled={isDisabled}
           placeholder={placeholder}
@@ -29,7 +34,7 @@ export default function FormSelect({
           onChange={option => onChange(option ? option.value : '')}
           options={opts}
           menuPortalTarget={document.body}
-          maxMenuHeight={190}
+          maxMenuHeight={maxMenuHeight}
           styles={{ menuPortal: base => ({ ...base, zIndex: 60 }) }}
         />
       </div>
