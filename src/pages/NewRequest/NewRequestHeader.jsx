@@ -1,3 +1,5 @@
+import { formatDateOnly } from '../../lib/formatDate';
+
 export default function NewRequestHeader({ contractTypeLabel, confidential, contractNo, approver3ApprovedAt }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-5 px-6 py-5">
@@ -33,7 +35,7 @@ export default function NewRequestHeader({ contractTypeLabel, confidential, cont
         <div className="text-slate-500">
           DATE:{' '}
           <span className="inline-block w-[120px] border-b border-dotted border-slate-400 text-center font-semibold text-slate-600">
-            {approver3ApprovedAt || '-'}
+            {formatDateOnly(approver3ApprovedAt) || '-'}
           </span>
         </div>
       </div>

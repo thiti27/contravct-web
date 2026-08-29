@@ -1,10 +1,11 @@
 import FieldShell from './FieldShell';
 
-export default function TextAreaField({ label, required, error, hint, className = '', rows = 4, ...props }) {
+export default function TextAreaField({ label, required, error, hint, className = '', rows = 4, name, ...props }) {
   return (
-    <FieldShell label={label} required={required} error={error} hint={hint}>
+    <FieldShell label={label} required={required} error={error} hint={hint} name={name}>
       <textarea
         rows={rows}
+        name={name}
         {...props}
         className={`w-full resize-none rounded-2xl border p-3 text-sm text-slate-700 outline-none transition-colors focus:bg-white focus:ring-4 ${
           error

@@ -11,14 +11,15 @@ import FieldShell from './FieldShell';
 // the entire time you were mid-edit. Only hide the native text (and show our overlay)
 // while the field isn't focused; while focused, the browser's own segmented date text is
 // visible so typing actually shows what you're typing.
-export default function DateField({ label, required, error, hint, value, onFocus, onBlur, ...props }) {
+export default function DateField({ label, required, error, hint, value, onFocus, onBlur, name, ...props }) {
   const [focused, setFocused] = useState(false);
 
   return (
-    <FieldShell label={label} required={required} error={error} hint={hint}>
+    <FieldShell label={label} required={required} error={error} hint={hint} name={name}>
       <div className="relative">
         <input
           type="date"
+          name={name}
           value={value || ''}
           onFocus={e => {
             setFocused(true);

@@ -20,3 +20,14 @@ export function formatDateTime(value) {
   const parts = Object.fromEntries(formatter.formatToParts(d).map(p => [p.type, p.value]));
   return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
+
+// Same Asia/Bangkok-fixed formatting as formatDateTime above, date part only — for
+// display spots (e.g. NewRequestHeader's DATE field) that want yyyy-mm-dd regardless of
+// whether the value arrives already date-only or as a full datetime.
+export function formatDateOnly(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const parts = Object.fromEntries(formatter.formatToParts(d).map(p => [p.type, p.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}

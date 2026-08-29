@@ -7,7 +7,7 @@ const TONE_BY_STATUS = status => {
   if (
     status === 'Rejected' ||
     status === 'Expired' ||
-    status === 'Canceled' ||
+    status === 'Cancelled' ||
     status === 'Reject' ||
     status === 'Terminated' ||
     status === 'Terminate'

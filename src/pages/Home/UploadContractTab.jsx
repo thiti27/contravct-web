@@ -14,6 +14,12 @@ export default function UploadContractTab() {
       showSection={false}
       showStatus
       enableEdit
+      // Every row here is already this user's own — HIGH CONFIDENTIAL should never lock
+      // out its own creator (see ContractTable.jsx's checkJobPermission).
+      checkJobPermission
+      // A Renew/Amend/Claim Note/Terminate child hides its own Type/Purpose here — the
+      // master always shows its own — see ContractTable.jsx's hideChildType.
+      hideChildType
     />
   );
 }

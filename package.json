@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.9.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "latest",
     "axios": "^1.18.1",

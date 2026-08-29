@@ -50,6 +50,15 @@ body {
 .rs__menu {
   z-index: 30 !important;
 }
+/* Opt-in brand-tinted approver picker (ApprovalSection's `highlight` prop) — used by
+   LinkedRequestModal (Renew/Amend/Claim Note/Terminate) to call out the fields that are
+   actually fillable there. Placed before .field-error below: both rules are !important
+   with equal specificity, so source order decides, and an actual validation error should
+   always win over the plain "please fill this" highlight when a row has both classes. */
+.rs-highlight .rs__control {
+  border-color: #8fb0ff !important;
+  background-color: #eef3ff !important;
+}
 .field-error .rs__control {
   border-color: #fda4af !important;
   background-color: rgb(254 242 242 / 0.4) !important;

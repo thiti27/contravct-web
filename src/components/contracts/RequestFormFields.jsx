@@ -25,6 +25,18 @@ export default function RequestFormFields({
   // (Drawing/Plan + Specification are upload-only for non-owners). Defaults to true so
   // every other caller (New Request, approve/legal/view modes) keeps full access.
   isOwner = true,
+  // All Job only: true when the viewer is neither this job's creator/approver nor holds
+  // the `view` permission (see EditRequestModal.jsx's restrictedFileAccess) — masks
+  // Specification/Drawing/Plan filenames entirely and blocks attach/download/delete,
+  // stricter than (and independent of) isOwner's plain upload-only restriction above.
+  // Defaults false everywhere else, leaving isOwner's existing behavior untouched.
+  strictDocAccess = false,
+  // Locks Section Approval specifically, independent of the all-or-nothing `readOnly`
+  // above — used when editing a 'Drafted' request: every required approver slot already
+  // has its own per-slot lock once it's actually signed (see ApprovalSection's isLocked),
+  // but an unused optional slot (the middle Supervisor) has no signature to lock it, so
+  // it would otherwise stay pickable even after the request is fully approved.
+  approvalReadOnly = false,
 }) {
   const selectedTypeName = contractTypes.find(t => t.id === formik.values.contractTypeId)?.name || '';
 
@@ -38,7 +50,7 @@ export default function RequestFormFields({
       />
       <ContractInfoSection formik={formik} contractTypes={contractTypes} readOnly={readOnly} />
       <PaymentTermSection formik={formik} readOnly={readOnly} />
-      <DocumentsSection formik={formik} readOnly={readOnly} isOwner={isOwner} />
+      <DocumentsSection formik={formik} readOnly={readOnly} isOwner={isOwner} strictRestriction={strictDocAccess} />
       <CommentSection
         formik={formik}
         required={commentRequired}
@@ -47,7 +59,7 @@ export default function RequestFormFields({
         sectionRef={commentSectionRef}
         readOnly={commentReadOnly}
       />
-      <ApprovalSection formik={formik} approverSignatures={approverSignatures} readOnly={readOnly} />
+      <ApprovalSection formik={formik} approverSignatures={approverSignatures} readOnly={readOnly || approvalReadOnly} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ export const REMARK_LABELS = {
   amend: 'Amend Contract',
   claim: 'Claim Note',
   terminate: 'Terminate',
+  cancel: 'Cancel Contract',
 };
 
 const REMARK_TONES = {
@@ -16,6 +17,7 @@ const REMARK_TONES = {
   amend: 'bg-amber-50 text-amber-600',
   claim: 'bg-purple-50 text-purple-600',
   terminate: 'bg-rose-50 text-rose-600',
+  cancel: 'bg-rose-50 text-rose-600',
 };
 
 // Renders nothing when remark is NULL/empty, per spec.

@@ -7,6 +7,7 @@ export default function FormSelect({
   required,
   error,
   hint,
+  name,
   options,
   value,
   onChange,
@@ -22,7 +23,7 @@ export default function FormSelect({
   const opts = options.map(o => (typeof o === 'string' ? { value: o, label: o } : o));
 
   return (
-    <FieldShell label={label} required={required} error={error} hint={hint}>
+    <FieldShell label={label} required={required} error={error} hint={hint} name={name}>
       <div className={error ? 'field-error' : ''}>
         <Select
           classNamePrefix="rs"

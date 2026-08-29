@@ -143,6 +143,23 @@ export function updateContractRequest(id, payload) {
   return apiClient.patch(`/requests/${id}`, payload).then(res => res.data);
 }
 
+// The Contract Requisition Form PDF (contract-server fills the official .xlsx template
+// with this request's data, then converts it via LibreOffice headless — see
+// services/excel/contractExcelService.js and services/pdf/libreOfficeService.js) — same
+// blob + throwaway-object-URL pattern as downloadUploadFile above, for the same reason
+// (a plain <a href> can't carry the Bearer token).
+export async function downloadContractPdf(id, displayName) {
+  const res = await apiClient.get(`/requests/${id}/pdf`, { responseType: 'blob' });
+  const blobUrl = URL.createObjectURL(res.data);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = displayName || '';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
 // ---------------------------------------------------------------------------
 // Approval workflow (Waiting Approve screen) — Approve / Return / Reject.
 // ---------------------------------------------------------------------------

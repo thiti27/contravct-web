@@ -1,6 +1,9 @@
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+
 // Generic centered modal overlay. Used for the "waiting on the server" state
 // while a form submits, but generic enough for other confirm/alert dialogs.
 export default function Modal({ open, children }) {
+  useBodyScrollLock(open);
   if (!open) return null;
 
   return (

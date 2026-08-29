@@ -3,11 +3,44 @@ import TextField from '../../../components/ui/TextField';
 import TextAreaField from '../../../components/ui/TextAreaField';
 import FormSelect from '../../../components/ui/FormSelect';
 import { CURRENCY_OPTIONS, PAYMENT_INSTALLMENTS } from '../constants';
-import { formatThousands } from '../../../lib/formatNumber';
+import { formatThousands, normalizeThousands } from '../../../lib/formatNumber';
 
 export default function PaymentTermSection({ formik, readOnly = false }) {
   const { values, errors, touched, handleChange, handleBlur, setFieldValue } = formik;
   const err = key => (touched[key] ? errors[key] : undefined);
+
+  // Comma-grouping formatThousands rewrites the whole string on every keystroke, which
+  // (as a plain controlled input) would otherwise always snap the cursor to the end —
+  // fine when appending at the end, wrong the moment a comma shifts because a digit was
+  // inserted/deleted anywhere earlier in the number. Counts how many digits/dots sat
+  // before the cursor pre-format, then walks the freshly-formatted string to the
+  // position with that same count, and writes both the DOM value and the cursor
+  // synchronously (before React's own re-render) so the browser never sees a value
+  // change without an accompanying, correct selection range.
+  const handleTotalNetPriceChange = e => {
+    const input = e.target;
+    const prevValue = input.value;
+    const prevCursor = input.selectionStart ?? prevValue.length;
+    const digitsBeforeCursor = prevValue.slice(0, prevCursor).replace(/[^\d.]/g, '').length;
+
+    const formatted = formatThousands(prevValue);
+
+    let seen = 0;
+    let pos = 0;
+    while (pos < formatted.length && seen < digitsBeforeCursor) {
+      if (/[\d.]/.test(formatted[pos])) seen += 1;
+      pos += 1;
+    }
+
+    input.value = formatted;
+    input.setSelectionRange(pos, pos);
+    setFieldValue('totalNetPrice', formatted);
+  };
+
+  const handleTotalNetPriceBlur = e => {
+    setFieldValue('totalNetPrice', normalizeThousands(e.target.value));
+    handleBlur(e);
+  };
 
   return (
     <section>
@@ -29,8 +62,8 @@ export default function PaymentTermSection({ formik, readOnly = false }) {
             inputMode="decimal"
             name="totalNetPrice"
             value={values.totalNetPrice}
-            onChange={e => setFieldValue('totalNetPrice', formatThousands(e.target.value))}
-            onBlur={handleBlur}
+            onChange={handleTotalNetPriceChange}
+            onBlur={handleTotalNetPriceBlur}
             error={err('totalNetPrice')}
             placeholder="0.00"
             disabled={readOnly}
@@ -49,6 +82,7 @@ export default function PaymentTermSection({ formik, readOnly = false }) {
           <FormSelect
             label="Currency"
             required
+            name="currency"
             options={CURRENCY_OPTIONS}
             value={values.currency}
             onChange={v => setFieldValue('currency', v)}

@@ -9,7 +9,7 @@ import { uploadFiles, deleteUpload, downloadUploadFile } from '../../../lib/api'
 // type keeps the plain readOnly-only behavior.
 const OWNER_RESTRICTED_KEYS = ['drawing', 'specification'];
 
-export default function DocumentsSection({ formik, readOnly = false, isOwner = true }) {
+export default function DocumentsSection({ formik, readOnly = false, isOwner = true, strictRestriction = false }) {
   const { values, setFieldValue } = formik;
   const [uploadingKeys, setUploadingKeys] = useState({});
   const [uploadErrors, setUploadErrors] = useState({});
@@ -64,9 +64,15 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
         {DOCUMENT_TYPES.map(doc => {
           const entry = values.documents[doc.key];
           const uploading = !!uploadingKeys[doc.key];
-          // Others/LG viewing a Drawing/Plan or Specification they didn't upload: can
-          // see the file names but not download or delete them (still can upload new).
-          const restrictedFiles = !isOwner && OWNER_RESTRICTED_KEYS.includes(doc.key);
+          const isRestrictedKey = OWNER_RESTRICTED_KEYS.includes(doc.key);
+          // Two independent restriction levels, never both relevant to the same caller
+          // (see RequestFormFields.jsx): strictRestriction (All Job, viewer fails the
+          // creator/approver/`view` permission check) masks the filename entirely and
+          // blocks attach/download/delete outright. Otherwise, plain !isOwner (any other
+          // page's non-owner) can still see the real filename and upload new files, just
+          // not download/delete what's already there.
+          const restrictedFiles = isRestrictedKey && (strictRestriction || !isOwner);
+          const blockAttach = isRestrictedKey && strictRestriction;
           return (
             <div key={doc.key} className={`rounded-2xl border p-4 ${entry.checked ? 'border-brand-100 bg-brand-50/30' : 'border-slate-200 bg-slate-50/40'}`}>
               <label className={`flex items-center gap-2 text-sm font-semibold text-slate-600 ${readOnly ? 'opacity-60' : ''}`}>
@@ -82,7 +88,7 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
 
               {entry.checked && (
                 <div className="mt-3 space-y-3 pl-6">
-                  {!readOnly && (
+                  {!readOnly && !blockAttach && (
                     <div className="flex min-w-[220px] max-w-md items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2.5">
                       {uploading ? (
                         <Loader2 size={17} className="shrink-0 animate-spin text-brand-500" />
@@ -117,9 +123,12 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
                       {entry.files.map(file => (
                         <li key={file.id} className="flex items-center gap-2 text-sm">
                           {restrictedFiles ? (
-                            <span className="text-slate-600">
-                              {file.fileName}
-                              {file.extension}
+                            // strictRestriction: real filename never reaches the DOM at
+                            // all, not just visually hidden — "xxxxx" is the only text
+                            // rendered. Plain !isOwner (other pages): filename still
+                            // shows, just not clickable/downloadable (existing behavior).
+                            <span className={`select-none ${strictRestriction ? 'text-slate-400' : 'text-slate-600'}`}>
+                              {strictRestriction ? 'xxxxx' : `${file.fileName}${file.extension}`}
                             </span>
                           ) : (
                             <button

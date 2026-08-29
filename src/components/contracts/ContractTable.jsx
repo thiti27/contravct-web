@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Ban,
@@ -7,6 +7,7 @@ import {
   Eye,
   FileEdit,
   FilePlus2,
+  Loader2,
   MessageSquare,
   MoreVertical,
   Pencil,
@@ -18,6 +19,7 @@ import StatusBadge from '../ui/StatusBadge';
 import ContractNoCell from '../ui/ContractNoCell';
 import { formatDateTime } from '../../lib/formatDate';
 import { EDITABLE_STATUSES } from '../../lib/statusGroups';
+import { hasConfidentialAccess } from '../../lib/confidentialAccess';
 import { useAuth } from '../../context/AuthContext';
 
 const DOCUMENT_DATES = ['2027-04-02', '2027-12-12', '2027-03-05'];
@@ -35,7 +37,7 @@ function buildRowMeta(contracts) {
     const isNewMasterGroup = isNewCompany || groupKey !== prevGroupKey;
     prevSupplier = contract.supplier;
     prevGroupKey = groupKey;
-    return { contract, isNewCompany, isNewMasterGroup, isMaster: !contract.referContractNo, companyRowSpan: 1 };
+    return { contract, isNewCompany, isNewMasterGroup, companyRowSpan: 1 };
   });
   meta.forEach((row, i) => {
     if (!row.isNewCompany) return;
@@ -72,9 +74,43 @@ function MoreMenu({
   showLegalComment,
   onLegalComment,
   onClose,
+  // Already resolved by RowActions (see its own `effectiveRestricted`) — on My Job this
+  // is always false regardless of the row's actual confidentiality, since every row
+  // there is this user's own contract; every item below just uses whatever comes in.
   restricted,
 }) {
   const ref = useRef(null);
+  // Positioned in two passes: an initial guess (open below, right-aligned to the
+  // button — the old fixed formula) so the menu has a size to measure, then
+  // useLayoutEffect measures its actual rendered footprint and flips it above the
+  // button (or clamps it sideways) if the initial guess would overflow the viewport —
+  // exactly what a last-row/near-edge More icon needs, since the menu's own height
+  // (it varies per row: Edit/Cancel/View/... aren't all shown at once) isn't known
+  // until it's actually rendered. Stays hidden (not just off-position) until that
+  // measure-and-correct pass lands, so the wrong-position guess is never visible —
+  // React commits both passes before the browser ever paints.
+  const [placement, setPlacement] = useState(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const menuRect = el.getBoundingClientRect();
+    const margin = 8;
+
+    let top = anchorRect.bottom + 4;
+    if (top + menuRect.height > window.innerHeight - margin) {
+      const spaceAbove = anchorRect.top - margin;
+      const spaceBelow = window.innerHeight - anchorRect.bottom - margin;
+      if (spaceAbove > spaceBelow) top = anchorRect.top - menuRect.height - 4;
+    }
+    top = Math.max(margin, top);
+
+    let left = anchorRect.right - menuRect.width;
+    if (left + menuRect.width > window.innerWidth - margin) left = window.innerWidth - menuRect.width - margin;
+    if (left < margin) left = margin;
+
+    setPlacement({ top, left });
+  }, [anchorRect]);
 
   useEffect(() => {
     const handleClickOutside = e => {
@@ -94,7 +130,12 @@ function MoreMenu({
   return createPortal(
     <div
       ref={ref}
-      style={{ position: 'fixed', top: anchorRect.bottom + 4, left: anchorRect.right - 176 }}
+      style={{
+        position: 'fixed',
+        top: placement ? placement.top : anchorRect.bottom + 4,
+        left: placement ? placement.left : anchorRect.right - 176,
+        visibility: placement ? 'visible' : 'hidden',
+      }}
       className="z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-card"
     >
       {showEdit && (
@@ -218,6 +259,7 @@ function MoreMenu({
 
 function RowActions({
   contractNo,
+  onDownload,
   showEdit,
   onEdit,
   showCancel,
@@ -235,13 +277,41 @@ function RowActions({
   approvalMode,
   onView,
   restricted,
+  // Home/Find Contract (variant="browse") always shows the More icon next to Download,
+  // even on a row with no menu items at all (e.g. Active/Rejected/Expired/Cancelled) —
+  // disabled rather than hidden, so the control's position on the row stays predictable
+  // instead of the layout shifting row to row. Every other list (My Job, Waiting
+  // Approve, ...) keeps the original behavior: hidden entirely when there's nothing to do.
+  alwaysShowMore = false,
+  // My Job only: every action on a row is treated as if it weren't confidentiality-
+  // restricted at all — Download, the More icon itself, and every item inside the menu
+  // (Edit, Cancel, ...). This is "my job", not someone else's — the confidentiality +
+  // `view`-permission gate exists to stop OTHER people opening a confidential contract
+  // they don't own, which doesn't apply to a user managing their own request.
+  neverDisableMore = false,
 }) {
-  const downloadable = contractNo && contractNo !== '-' && !restricted;
+  const effectiveRestricted = neverDisableMore ? false : restricted;
+  const downloadable = contractNo && contractNo !== '-' && !effectiveRestricted;
+  const hasAnyAction = showEdit || showView || showSignedActions || showCancel || showLegalComment;
+  const moreDisabled = effectiveRestricted || !hasAnyAction;
   const [anchorRect, setAnchorRect] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const btnRef = useRef(null);
 
   const toggleOpen = () => {
     setAnchorRect(r => (r ? null : btnRef.current.getBoundingClientRect()));
+  };
+
+  const handleDownload = async () => {
+    if (!downloadable || downloading) return;
+    setDownloading(true);
+    try {
+      await onDownload?.();
+    } catch {
+      window.alert('ดาวน์โหลด PDF ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (approvalMode) {
@@ -261,34 +331,44 @@ function RowActions({
   return (
     <td className="whitespace-nowrap px-3 py-1.5 text-right align-top">
       <button
-        disabled={!downloadable}
-        title={restricted ? 'You do not have permission to download this contract.' : undefined}
+        type="button"
+        onClick={handleDownload}
+        disabled={!downloadable || downloading}
+        title={effectiveRestricted ? 'You do not have permission to download this contract.' : undefined}
         className="mr-1.5 inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white disabled:border disabled:border-dashed disabled:border-slate-200 disabled:bg-white disabled:text-slate-300"
       >
-        <Download size={15} /> Download
+        {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Download
       </button>
-      {/* Only rendered when there's actually something behind it (an editable/viewable
+      {/* Rendered whenever there's actually something behind it (an editable/viewable
           status, or a restricted row that needs the disabled state + tooltip to explain
           why) — otherwise it'd be a dead click. Filled + colored, not just an outlined
           icon, so it reads as a clickable action next to Download instead of a faint
-          decoration users overlook. */}
-      {(showEdit || showView || showSignedActions || showCancel || showLegalComment || restricted) && (
+          decoration users overlook. alwaysShowMore (Home/Find Contract) additionally
+          renders it — disabled — even with nothing behind it, so it doesn't hide. */}
+      {(hasAnyAction || effectiveRestricted || alwaysShowMore) && (
         <button
           ref={btnRef}
           type="button"
-          onClick={restricted ? undefined : toggleOpen}
-          disabled={restricted}
-          title={restricted ? 'You do not have permission to access this contract.' : 'More actions'}
+          onClick={moreDisabled ? undefined : toggleOpen}
+          disabled={moreDisabled}
+          title={
+            moreDisabled
+              ? effectiveRestricted
+                ? 'You do not have permission to access this contract.'
+                : 'No actions available for this contract.'
+              : 'More actions'
+          }
           className="inline-grid h-9 w-9 place-items-center rounded-full bg-brand-50 text-brand-600 hover:bg-brand-100 disabled:cursor-not-allowed disabled:bg-white disabled:text-slate-300 disabled:opacity-60"
         >
           <MoreVertical size={17} />
         </button>
       )}
-      {anchorRect && (showEdit || showView || showSignedActions || showCancel || showLegalComment) && (
+      {anchorRect && hasAnyAction && (
         <MoreMenu
           anchorRect={anchorRect}
           onClose={() => setAnchorRect(null)}
           showEdit={showEdit}
+          restricted={effectiveRestricted}
           onEdit={() => {
             setAnchorRect(null);
             onEdit?.();
@@ -330,7 +410,6 @@ function RowActions({
             setAnchorRect(null);
             onLegalComment?.();
           }}
-          restricted={restricted}
         />
       )}
     </td>
@@ -344,6 +423,7 @@ export default function ContractTable({
   variant = 'job',
   enableEdit = false,
   onEdit,
+  onDownload,
   onCancel,
   onUploadSign,
   onRenew,
@@ -354,6 +434,19 @@ export default function ContractTable({
   approvalMode = false,
   onView,
   viewableStatuses = [],
+  // My Job only — see RowActions' neverDisableMore for what this actually does.
+  neverDisableMore = false,
+  // All Job/Home only — broadens the HIGH CONFIDENTIAL access check below from just
+  // `view` to creator-or-view-or-approver (see lib/confidentialAccess.js), matching the
+  // same rule the backend re-checks on getRequest/file download. Defaults false so
+  // every other page (Waiting Approve/Waiting Check/Legal History/My History) keeps the
+  // plain `view`-only check — My Job doesn't need this at all since neverDisableMore
+  // already bypasses `restricted` outright there.
+  checkJobPermission = false,
+  // Home only — hides Type/Purpose on a child row (Renew/Amend/Claim Note/Terminate —
+  // any row with a referContractNo pointing back to a master). The master itself always
+  // shows its own Type/Purpose, whether or not it has children.
+  hideChildType = false,
 }) {
   const { user } = useAuth();
   const rowMeta = buildRowMeta(contracts);
@@ -404,10 +497,13 @@ export default function ContractTable({
             </tr>
           </thead>
           <tbody>
-            {rowMeta.map(({ contract, isNewCompany, isMaster, companyRowSpan, isLastInCompany, isLastInMasterGroup }, index) => {
-              // Confidential contracts require the view permission, full stop — unrelated
-              // to who created the request. Non-confidential contracts are never restricted.
-              const restricted = !!contract.confidentiality && !user?.view;
+            {rowMeta.map(({ contract, isNewCompany, companyRowSpan, isLastInCompany, isLastInMasterGroup }, index) => {
+              // All Job/Home: creator, `view` permission, or one of the 3 approvers all
+              // grant access (see lib/confidentialAccess.js) — same rule the backend
+              // re-checks. Everywhere else: confidential contracts require the view
+              // permission, full stop, unrelated to who created the request. Non-
+              // confidential contracts are never restricted either way.
+              const restricted = checkJobPermission ? !hasConfidentialAccess(contract, user) : !!contract.confidentiality && !user?.view;
               // Company groups get a thicker rule below their last row; master/child groups
               // within the same company get a thin rule; rows sharing a master group otherwise
               // sit flush against each other so the renew/amend/claim history reads as one block.
@@ -432,7 +528,15 @@ export default function ContractTable({
                       <ContractNoCell contractNo={contract.contractNo} remark={contract.remark} confidentiality={contract.confidentiality} />
                     </td>
                     <td className="px-6 py-1.5 text-center align-top">
-                      {isMaster && (
+                      {/* Unlike Supplier's rowSpan merge above, Type/Purpose isn't merged
+                          across a master's renew/amend/claim/terminate child rows — each
+                          is its own contract_request with its own type/purpose, so every
+                          row shows its own value directly (previously only the master row
+                          did, leaving child rows blank) — except on Home, where a child
+                          row (referContractNo set) hides its own Type/Purpose (see
+                          hideChildType above); the master itself always shows its own,
+                          with or without children. */}
+                      {contract.type && !(hideChildType && !!contract.referContractNo) && (
                         <>
                           <div title={contract.type} className="truncate font-semibold text-slate-700">
                             {contract.type}
@@ -477,6 +581,7 @@ export default function ContractTable({
                     )}
                     <RowActions
                       contractNo={contract.contractNo}
+                      onDownload={() => onDownload?.(contract)}
                       showEdit={enableEdit && EDITABLE_STATUSES.includes(contract.status)}
                       onEdit={() => onEdit?.(contract.id)}
                       showCancel={enableEdit && contract.status === 'Drafted'}
@@ -484,16 +589,20 @@ export default function ContractTable({
                       showView={viewableStatuses.includes(contract.status)}
                       showUploadSign={enableEdit && contract.status === 'Drafted'}
                       onUploadSign={() => onUploadSign?.(contract)}
-                      showSignedActions={contract.status === 'Signed'}
+                      showSignedActions={enableEdit && contract.status === 'Signed'}
                       onRenew={() => onRenew?.(contract)}
                       onAmend={() => onAmend?.(contract)}
                       onClaimNote={() => onClaimNote?.(contract)}
                       onTerminate={() => onTerminate?.(contract)}
-                      showLegalComment={(contract.status === 'Signed' || contract.status === 'Drafted') && !!user?.legal}
+                      showLegalComment={
+                        enableEdit && (contract.status === 'Signed' || contract.status === 'Drafted') && !!user?.legal && !contract.legalCheck
+                      }
                       onLegalComment={() => onLegalComment?.(contract)}
                       approvalMode={approvalMode}
                       onView={() => onView?.(contract.id)}
                       restricted={restricted}
+                      alwaysShowMore={variant === 'browse'}
+                      neverDisableMore={neverDisableMore}
                     />
                   </tr>
 
@@ -511,7 +620,7 @@ export default function ContractTable({
                         <td className="px-6 py-2">
                           <StatusBadge status={index === 1 ? 'Near Expiry' : 'Active'} />
                         </td>
-                        <RowActions contractNo={doc} restricted={restricted} />
+                        <RowActions contractNo={doc} restricted={restricted} alwaysShowMore={variant === 'browse'} />
                       </tr>
                     ))}
                 </React.Fragment>

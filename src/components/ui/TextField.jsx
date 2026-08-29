@@ -1,9 +1,10 @@
 import FieldShell from './FieldShell';
 
-export default function TextField({ label, required, error, hint, className = '', ...props }) {
+export default function TextField({ label, required, error, hint, className = '', name, ...props }) {
   return (
-    <FieldShell label={label} required={required} error={error} hint={hint}>
+    <FieldShell label={label} required={required} error={error} hint={hint} name={name}>
       <input
+        name={name}
         {...props}
         className={`h-11 w-full rounded-2xl border px-3 text-sm text-slate-700 outline-none transition-colors focus:bg-white focus:ring-4 disabled:bg-slate-100 disabled:text-slate-400 ${
           error

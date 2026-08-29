@@ -39,6 +39,7 @@ export default function ContractInfoSection({ formik, contractTypes, readOnly = 
           <FormSelect
             label="Contract Type"
             required
+            name="contractTypeId"
             error={err('contractTypeId')}
             options={contractTypes.map(t => ({ value: t.id, label: t.name }))}
             value={values.contractTypeId}
@@ -66,6 +67,7 @@ export default function ContractInfoSection({ formik, contractTypes, readOnly = 
             <FormSelect
               label="Contract Purpose"
               required
+              name="contractPurpose"
               error={err('contractPurpose')}
               options={purposeOptions}
               value={values.contractPurpose}
@@ -89,7 +91,9 @@ export default function ContractInfoSection({ formik, contractTypes, readOnly = 
             required
             name="supplierName"
             value={values.supplierName}
-            onChange={handleChange}
+            // English letters uppercase in real time as the user types; Thai (and any
+            // other caseless script) passes through toUpperCase() unchanged.
+            onChange={e => setFieldValue('supplierName', e.target.value.toUpperCase())}
             onBlur={handleBlur}
             error={err('supplierName')}
             placeholder="ชื่อผู้ขาย / ชื่อบริษัท"

@@ -47,7 +47,13 @@ const makeEmployeeLoader = () =>
 // (index 0) approves last as Approver 3 — which is why `approverSignatures[index]`
 // (and the approvers[]/approverN_em_id mapping on the server, see requestController.js
 // and contractRequestHelper.js) is in that same reversed order.
-export default function ApprovalSection({ formik, approverSignatures, readOnly = false }) {
+// `highlight`: opt-in brand-tinted border/background on the approver picker cells (via
+// the .rs-highlight CSS hook in styles.css — react-select's own control styling is
+// already !important-overridden globally, so a plain wrapper class can't beat it without
+// matching !important). Off by default so New Request/Edit keep their plain look; only
+// LinkedRequestModal (Renew/Amend/Claim Note/Terminate) turns it on, since Contract
+// Information there is read-only and this is one of the few things actually fillable.
+export default function ApprovalSection({ formik, approverSignatures, readOnly = false, highlight = false }) {
   const { values, errors, touched, handleChange, handleBlur, setFieldValue } = formik;
   const err = key => (touched[key] ? errors[key] : undefined);
 
@@ -124,8 +130,11 @@ export default function ApprovalSection({ formik, approverSignatures, readOnly =
           />
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* data-field powers scrollToField (see lib/formScroll.js) — `approvers` is an
+              array field with no single input of its own, so this wraps the whole
+              picker block instead of a single FieldShell. */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200" data-field="approvers">
             <div className="grid grid-cols-[1fr_2fr] bg-slate-100 text-xs font-bold tracking-wide text-slate-500">
               <div className="px-4 py-3">Approved by</div>
               <div className="px-4 py-3">Signature</div>
@@ -152,7 +161,11 @@ export default function ApprovalSection({ formik, approverSignatures, readOnly =
                       </div>
                     ) : (
                       <>
-                        <div className={touched.approvers && errors.approvers?.[index] ? 'field-error' : ''}>
+                        <div
+                          className={`${touched.approvers && errors.approvers?.[index] ? 'field-error' : ''} ${
+                            highlight ? 'rs-highlight' : ''
+                          }`}
+                        >
                           <AsyncSelect
                             classNamePrefix="rs"
                             isClearable

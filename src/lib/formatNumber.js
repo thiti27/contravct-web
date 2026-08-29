@@ -23,3 +23,16 @@ export function parseThousands(formattedValue) {
   if (!formattedValue) return '';
   return String(formattedValue).replace(/,/g, '');
 }
+
+// Full `#,###.00` normalization — applied on blur, not on every keystroke: padding a
+// missing decimal ("1000" -> "1000.00") or dropping a trailing "." while the user is
+// still mid-edit would fight what they're actively typing (e.g. about to type
+// "1000.50"). formatThousands above stays live-as-you-type; this is the "done editing,
+// lock in the final display" pass.
+export function normalizeThousands(rawValue) {
+  const stripped = parseThousands(rawValue).trim();
+  if (!stripped) return '';
+  const num = Number(stripped);
+  if (Number.isNaN(num)) return '';
+  return formatThousands(num.toFixed(2));
+}

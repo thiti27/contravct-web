@@ -8,12 +8,21 @@ export const LEGAL_WAITING_STATUSES = ['Waiting Legal Check'];
 // Legal > Waiting's actual scope (see contract-server/server.js's LEGAL_REVIEW_STATUSES) —
 // kept distinct from LEGAL_WAITING_STATUSES above, which still feeds MY_JOB_STATUSES.
 export const LEGAL_REVIEW_STATUSES = ['Drafted', 'Signed'];
-export const HISTORY_STATUSES = ['Active', 'Near Expiry', 'Rejected', 'Expired', 'Canceled'];
+// Job Status > My History's scope: only requests this user created that have reached
+// a terminal, "done" state — Signed, Cancelled, Terminated, or No Needed. Deliberately
+// excludes Active/Near Expiry/Expired/Rejected/Returned/Waiting*, which live elsewhere
+// (Find Contract, My Job, etc.).
+export const HISTORY_STATUSES = ['Signed', 'Cancelled', 'Terminated', 'No Needed'];
+// Home > Find Contract's scope — every status a contract could meaningfully be "found"
+// in once its own approval/legal workflow has finished (Drafted onward), across every
+// creator, not just this user's own — deliberately excludes every in-flight Waiting*/
+// Saved/Returned status, which live in My Job/All Job instead.
+export const FIND_CONTRACT_STATUSES = [...HISTORY_STATUSES, 'Drafted'];
 
 export const MY_JOB_STATUSES = [...CONTRACT_MAKING_STATUSES, ...UPLOAD_CONTRACT_STATUSES, ...LEGAL_WAITING_STATUSES];
 export const APPROVAL_WAITING_STATUSES = CONTRACT_MAKING_STATUSES.filter(status => status.startsWith('Waiting Approver'));
 // All Job's scope: every request still in progress (not yet Active/Rejected/Expired/
-// Canceled/Terminated, and not still a private Saved draft).
+// Cancelled/Terminated, and not still a private Saved draft).
 export const ALL_JOB_STATUSES = ['Waiting Approver 1', 'Waiting Approver 2', 'Waiting Approver 3', 'Returned', 'Drafted'];
 
 // Statuses for which the "more" menu on a contract row offers an Edit action,

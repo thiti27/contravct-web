@@ -25,6 +25,7 @@ export const REMARK_OPTIONS = [
   { value: 'amend', label: 'Amend Contract' },
   { value: 'claim', label: 'Claim Note' },
   { value: 'terminate', label: 'Terminate' },
+  { value: 'cancel', label: 'Cancel Contract' },
 ];
 
 export const CURRENCY_OPTIONS = ['THB', 'USD', 'EUR', 'JPY', 'CNY'];

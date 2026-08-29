@@ -9,6 +9,12 @@ export default function MyJobTab() {
       statusScope={MY_JOB_STATUSES}
       scopeToCurrentUser
       enableEdit
+      // The More icon is never disabled here — individual menu items still enforce
+      // their own confidentiality/permission checks (see ContractTable.jsx).
+      neverDisableMore
+      // Header-only: Edit modal always reads "Edit Contract", centered, instead of
+      // "Edit {Status} Contract" — see EditRequestModal.jsx's titleOverride.
+      editModalTitle="Edit Contract"
     />
   );
 }

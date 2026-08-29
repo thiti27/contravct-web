@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 
 // Large form modal (e.g. the Edit/Approve/Legal Review/Legal History views on top of
 // the New Request sections) — unlike Modal.jsx (small, centered alert/confirm boxes),
@@ -25,6 +26,7 @@ export default function FormModal({
   // space next to the close button, which `justify-between` alone can't do.
   centerTitle = false,
 }) {
+  useBodyScrollLock(open);
   if (!open) return null;
   const boxed = size === 'boxed';
   return (

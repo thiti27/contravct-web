@@ -1,3 +1,6 @@
+import { normalizeReferContractNo } from '../../lib/contractNo';
+import { normalizeThousands } from '../../lib/formatNumber';
+
 const REQUIRED_MESSAGE = 'This field is required.';
 
 export const EMPTY_DOCUMENT = { checked: false, files: [] };
@@ -26,6 +29,7 @@ export function buildInitialValues(user) {
     location: '',
     warrantyPeriod: '',
     referContractNo: '',
+    linkedMasterId: null,
     briefDescription: '',
     totalNetPrice: '',
     vat: '7%',
@@ -44,6 +48,19 @@ export function buildInitialValues(user) {
     paymentOther: '',
     documents: buildEmptyDocuments(),
     comment: '',
+    // Only meaningful for a Renew/Amend/Claim Note/Terminate/Cancel request (see
+    // buildInitialValuesFromMaster below) — always empty here since a brand new request
+    // has no "___ Information" section at all. Which of these actually get used, and
+    // under what on-screen label, depends on remark — see ActionInfoSection.jsx.
+    actionBackground: '', // Renew: "Purpose". Amend/Terminate/Claim Note: "Brief Description & Background/Reason".
+    actionDetail: '', // Amend: "Amended Detail". Terminate: "Terminate Detail". Claim Note: "Claim Detail".
+    actionFiles: [], // Amend/Terminate/Claim Note only.
+    actionEffectiveDate: '', // Amend/Terminate only.
+    originalContractStartDate: '', // Renew only — read-only, derived server-side from the referenced contract.
+    originalContractEndDate: '', // Renew only — read-only, derived server-side from the referenced contract.
+    newContractStartDate: '', // Renew only.
+    newContractEndDate: '', // Renew only.
+    cancelReason: '', // Cancel only.
     requestorName: user?.name || '',
     requestorSection: user?.section || '',
     approvers: ['', '', ''],
@@ -66,14 +83,28 @@ export function buildInitialValuesFromMaster(masterData, user, remark) {
     contractTypeId: masterData.contractTypeId,
     contractPurpose: masterData.contractPurpose,
     otherSpecify: masterData.otherSpecify,
-    supplierName: masterData.supplierName,
+    supplierName: (masterData.supplierName || '').toUpperCase(),
     requestDate: new Date().toISOString().slice(0, 10),
     deliveryDate: masterData.deliveryDate,
     location: masterData.location,
     warrantyPeriod: masterData.warrantyPeriod,
-    referContractNo: masterData.contractNo,
+    // Renew/Amend/Claim Note/Terminate: normalized to the base contract number (e.g.
+    // "DSST01-2026-01" -> "DSST01-2026") — see normalizeReferContractNo — so if the
+    // master itself is already a revision, this new request still refers to the base,
+    // keeping the revision counter continuous instead of nesting.
+    //
+    // Cancel is deliberately different: it targets whichever exact contract the user
+    // clicked Cancel on, verbatim — cancelling a revision (e.g. "DSST01-2026-01", its
+    // own independently-Signed agreement) must cancel THAT contract, not silently
+    // redirect to its unrelated base ("DSST01-2026"). No normalization here at all.
+    referContractNo: remark === 'cancel' ? masterData.contractNo : normalizeReferContractNo(masterData.contractNo),
+    // The exact row (by id) this request was opened from — see linked_master_id in
+    // schema.sql. Used server-side only when remark === 'cancel': once this Cancel
+    // request finishes its own approval chain, THIS row (whichever one was actually
+    // clicked) flips to 'Cancelled', matching referContractNo above.
+    linkedMasterId: masterData.id,
     briefDescription: masterData.briefDescription,
-    totalNetPrice: masterData.totalNetPrice,
+    totalNetPrice: normalizeThousands(masterData.totalNetPrice),
     vat: masterData.vat,
     currency: masterData.currency,
     tradeTerm: masterData.tradeTerm,
@@ -81,6 +112,22 @@ export function buildInitialValuesFromMaster(masterData, user, remark) {
     paymentOther: masterData.paymentOther,
     documents: buildEmptyDocuments(),
     comment: '',
+    // This request's own "___ Information" — never carried over from the master, it's
+    // specific to this particular renewal/amendment/claim/termination/cancellation. See
+    // buildInitialValues above for what each field means per remark.
+    actionBackground: '',
+    actionDetail: '',
+    actionFiles: [],
+    actionEffectiveDate: '',
+    // Renew's read-only "Original Period" — this IS the referenced contract (masterData
+    // is that contract's own detail), so its own signed period is what "Original Period"
+    // shows. Once this new request later becomes its own row, re-fetching it goes
+    // through getRequest's linked_master_id lookup instead (see requestController.js).
+    originalContractStartDate: masterData.contractStartDate || '',
+    originalContractEndDate: masterData.expireDate || '',
+    newContractStartDate: '',
+    newContractEndDate: '',
+    cancelReason: '',
     requestorName: user?.name || '',
     requestorSection: user?.section || '',
     approvers: ['', '', ''],
@@ -126,12 +173,12 @@ export function validateRequest(values) {
   return errors;
 }
 
-// Used by LinkedRequestModal's "Send Request" submit path. Deliberately narrower than
-// validateRequest above: this modal only shows Contract Information + Approval (see
-// buildInitialValuesFromMaster), so it only requires what's actually on screen —
-// totalNetPrice/vat/currency/tradeTerm are carried over from the master unedited and
-// have nowhere to be fixed here, so requiring them would block Send Request on fields
-// the user can't see, let alone correct.
+// Used by LinkedRequestModal's "Send Request" submit path (and EditRequestModal's, when
+// editing a Renew/Amend/Claim Note/Terminate request). Deliberately narrower than
+// validateRequest above: Contract Information is read-only there (fixed at creation) and
+// Payment Term/Documents aren't shown at all — totalNetPrice/vat/currency/tradeTerm are
+// carried over from the master unedited and have nowhere to be fixed here, so requiring
+// them would block Send Request on fields the user can't see, let alone correct.
 export function validateLinkedRequest(values) {
   const errors = {};
   const requireText = key => {
@@ -148,6 +195,27 @@ export function validateLinkedRequest(values) {
   requireText('briefDescription');
   requireText('requestorName');
   requireText('requestorSection');
+
+  // "___ Information" requirements are remark-specific — each action collects a
+  // different shape of data (see ActionInfoSection.jsx), unlike the single shared
+  // Background/Detail/Attach file fields this used to require for every remark.
+  if (values.remark === 'renew') {
+    requireText('actionBackground'); // Purpose
+    requireText('newContractStartDate');
+    requireText('newContractEndDate');
+    if (values.newContractStartDate && values.newContractEndDate && values.newContractStartDate > values.newContractEndDate) {
+      errors.newContractEndDate = 'End Date must not be earlier than Start Date.';
+    }
+  } else if (values.remark === 'amend' || values.remark === 'terminate') {
+    requireText('actionBackground');
+    requireText('actionDetail');
+    requireText('actionEffectiveDate');
+  } else if (values.remark === 'claim') {
+    requireText('actionBackground');
+    requireText('actionDetail');
+  } else if (values.remark === 'cancel') {
+    requireText('cancelReason');
+  }
 
   const approvers = approverErrors(values.approvers);
   if (approvers) errors.approvers = approvers;
