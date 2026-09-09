@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFormik } from 'formik';
-import { Save, Send, XCircle, X, CheckCircle2, RotateCcw, MessageSquare, ShieldCheck, Ban, MinusCircle, Download, Loader2 } from 'lucide-react';
+import { Save, Send, XCircle, X, CheckCircle2, RotateCcw, MessageSquare, ShieldCheck, Ban, MinusCircle } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import RemarkBadge, { REMARK_LABELS } from '../ui/RemarkBadge';
 import ConfidentialBadge from '../ui/ConfidentialBadge';
+import RequestBadge from '../ui/RequestBadge';
+import EditBadge from '../ui/EditBadge';
 import ConfirmModal from '../ui/ConfirmModal';
 import WaitingModal from '../ui/WaitingModal';
 import ResultModal from '../ui/ResultModal';
@@ -21,16 +23,16 @@ import {
   approveContractRequest,
   returnContractRequest,
   rejectContractRequest,
+  waiveContractRequest,
   commentOnLegalRequest,
   checkLegalRequest,
   terminateLegalRequest,
-  markNoNeedLegalRequest,
+  waiveLegalRequest,
   cancelLegalRequest,
 } from '../../lib/api';
 import { parseThousands, normalizeThousands } from '../../lib/formatNumber';
 import { buildInitialValues, validateRequest, validateLinkedRequest } from '../../pages/NewRequest/formConfig';
 import { validateAndScrollOnError } from '../../lib/formScroll';
-import { downloadContractRequisitionFormPdf } from '../../pdf/downloadContractRequisitionFormPdf';
 
 // Statuses where the footer is Save Change / Close and the Comment field is required —
 // editing an in-flight request needs a reason recorded either way. Only relevant in
@@ -46,7 +48,7 @@ const GROUP_A_STATUSES = ['Waiting Approver 1', 'Waiting Approver 2', 'Waiting A
 // confirm popup opens (red border + required message otherwise). 'cancel' isn't listed —
 // the plain Edit-mode Cancel footer button was removed (Cancel is now its own linked-
 // request flow, like Renew/Amend/Claim Note/Terminate — see the More menu instead).
-const COMMENT_REQUIRED_ACTIONS = ['save-change', 'return', 'reject', 'comment', 'terminate', 'legal-cancel'];
+const COMMENT_REQUIRED_ACTIONS = ['save-change', 'return', 'reject', 'comment', 'terminate', 'legal-cancel', 'waive'];
 
 const CONFIRM_COPY = {
   'save-change': { title: 'Confirm Save Change', message: 'Save the changes made to this contract request?' },
@@ -62,7 +64,7 @@ const CONFIRM_COPY = {
   'legal-save': { title: 'Confirm Save', message: 'Save the changes made to this contract?' },
   check: { title: 'Confirm Legal Check', message: 'Are you sure you want to complete the legal review?' },
   terminate: { title: 'Confirm Terminate Contract', message: 'Are you sure you want to terminate this contract?' },
-  'no-need': { title: 'Confirm No Need', message: 'Are you sure you want to mark this contract as No Need?' },
+  waive: { title: 'Confirm Waive', message: 'Are you sure you want to waive this and mark the contract as Signed?' },
   'legal-cancel': { title: 'Confirm Cancel Contract', message: 'Are you sure you want to cancel this contract?' },
 };
 
@@ -77,17 +79,22 @@ const RESULT_MESSAGE = {
   'legal-save': 'Your changes have been saved successfully.',
   check: 'The legal review has been completed successfully.',
   terminate: 'This contract has been terminated successfully.',
-  'no-need': 'This contract has been marked as No Need.',
+  waive: 'This contract has been waived and marked as Signed.',
   'legal-cancel': 'This contract has been canceled successfully.',
 };
 
-const APPROVAL_API = { approve: approveContractRequest, return: returnContractRequest, reject: rejectContractRequest };
+const APPROVAL_API = {
+  approve: approveContractRequest,
+  return: returnContractRequest,
+  reject: rejectContractRequest,
+  waive: waiveContractRequest,
+};
 const LEGAL_API = {
   comment: commentOnLegalRequest,
   'legal-save': commentOnLegalRequest,
   check: checkLegalRequest,
   terminate: terminateLegalRequest,
-  'no-need': markNoNeedLegalRequest,
+  waive: waiveLegalRequest,
   'legal-cancel': cancelLegalRequest,
 };
 
@@ -108,7 +115,7 @@ const LEGAL_BUTTON_TOOLTIPS = {
   save: 'แก้ไขข้อมูลและ Comment ได้ โดยไม่ส่งอีเมล',
   check: 'ตรวจสอบข้อมูล',
   comment: 'เพิ่ม Comment และส่งอีเมล',
-  noNeed: 'เปลี่ยนสถานะเป็น No Need',
+  waive: 'ข้ามการตรวจสอบทางกฎหมายและเปลี่ยนสถานะเป็น Signed',
   cancelOrTerminate: 'ยกเลิกสัญญานี้',
 };
 
@@ -135,7 +142,6 @@ export default function EditRequestModal({
   const [result, setResult] = useState(null);
   const [pendingAction, setPendingAction] = useState(null); // { action, values } | null
   const [commentAttempted, setCommentAttempted] = useState(false);
-  const [pdfDownloading, setPdfDownloading] = useState(false);
   const commentSectionRef = useRef(null);
 
   // Extracted so the Legal "Comment" action (which stays open and refreshes in
@@ -171,8 +177,12 @@ export default function EditRequestModal({
     // Renew/Amend/Claim Note/Terminate rows (remark !== 'new') use the narrower
     // validator — Payment Term/Documents aren't shown in that reduced layout (see
     // isLinkedRequest below), so validateRequest's requirements for those would block
-    // Save Change/Send Request on fields the user can't even see here.
-    validate: initialData?.remark && initialData.remark !== 'new' ? validateLinkedRequest : validateRequest,
+    // Save Change/Send Request on fields the user can't even see here. 'waived'
+    // excluded here too — see isLinkedRequest's own note on why.
+    validate:
+      initialData?.remark && initialData.remark !== 'new' && initialData.remark !== 'waived'
+        ? validateLinkedRequest
+        : validateRequest,
   });
 
   if (!contractId) return null;
@@ -218,11 +228,21 @@ export default function EditRequestModal({
   // (mode="approve"), Legal > Waiting's View (mode="legal"), and any read-only View
   // (mode="view" — Job Status/Approval "My History") all show that same read-only
   // Contract Info + centered header LinkedRequestModal uses, while each keeps its own
-  // footer (Save Change/Save Draft/Cancel for Edit, Approve/Return/Reject for approve,
-  // Check/Comment/No Need/Terminate-or-Cancel for legal, Close-only for view — see the
+  // footer (Save Change/Save Draft/Cancel for Edit, Approve/Return/Reject/Waive for
+  // approve, Check/Comment/Waive/Terminate-or-Cancel for legal, Close-only for view — see the
   // footer below, untouched by this).
+  // 'waived' is excluded here (unlike every other non-'new' remark) because it
+  // overwrites whatever the row's remark was before waiving (see approvalController/
+  // legalController's own waiveRequest) — there's no way to tell anymore whether a
+  // waived row was originally 'new' or a Renew/Amend/Claim Note/Terminate, so it
+  // always falls back to the full RequestFormFields layout below rather than risk
+  // showing ActionInfoSection's Background/Detail fields blank for what may have
+  // been a plain new contract.
   const isLinkedRequest =
-    (isEditMode || isApproveMode || isLegalMode || isReadOnlyMode) && !!initialData?.remark && initialData.remark !== 'new';
+    (isEditMode || isApproveMode || isLegalMode || isReadOnlyMode) &&
+    !!initialData?.remark &&
+    initialData.remark !== 'new' &&
+    initialData.remark !== 'waived';
   // Editing or Legal-reviewing a 'Drafted' request — every approver has already signed
   // off by this stage, so Section Approval must stay locked regardless of remark.
   const approvalReadOnly = (isEditMode || isLegalMode) && initialData?.status === 'Drafted';
@@ -271,15 +291,23 @@ export default function EditRequestModal({
   };
 
   // Legal's own "Save" — edits/saves the form data without touching status, comment
-  // optional (same simple pattern as Check/No Need below). Functionally identical to
+  // optional (same simple pattern as Check below). Functionally identical to
   // Comment's own save-without-status-change behavior (both call commentOnLegalRequest),
   // kept as its own footer button per requirements rather than folded into Comment.
   const handleLegalSaveClick = () => openConfirm('legal-save');
   // Check's comment is optional (guardComment only blocks 'comment'/'terminate'),
   // Comment and Terminate both require one — same scroll+red-border pattern as above.
   const handleCheckClick = () => openConfirm('check');
-  // No Need has no comment requirement either — same simple pattern as Check.
-  const handleNoNeedClick = () => openConfirm('no-need');
+  // Waive requires a comment (unlike Check above) — same scroll+red-border pattern
+  // as Comment/Terminate. Shared by both the Legal footer and the Approve footer
+  // below (handleConfirmYes dispatches to the right API map by mode).
+  const handleWaiveClick = () => {
+    if (!guardComment('waive')) {
+      commentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    openConfirm('waive');
+  };
   const handleCommentClick = () => {
     if (!guardComment('comment')) {
       commentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -353,22 +381,6 @@ export default function EditRequestModal({
     }
   };
 
-  // Entirely client-side (see src/pdf/) — no API call, no data mutation, just the data
-  // already loaded into this modal (formik.values) rendered into the official Contract
-  // Requisition Form template's layout. Available in every mode, since any open request
-  // has this same data on screen regardless of what else the footer offers.
-  const handleDownloadPdfClick = async () => {
-    setPdfDownloading(true);
-    try {
-      await downloadContractRequisitionFormPdf(formik.values, selectedTypeName);
-    } catch (err) {
-      console.error('Failed to generate the Contract Requisition Form PDF:', err);
-      window.alert('Unable to generate PDF. Please try again.');
-    } finally {
-      setPdfDownloading(false);
-    }
-  };
-
   const footer = initialData && !loadError && (
     <>
       {isReadOnlyMode ? null : isApproveMode ? (
@@ -397,6 +409,20 @@ export default function EditRequestModal({
           >
             <XCircle size={16} /> Reject
           </button>
+          {/* Only the last approver stage (3) can waive straight to Signed — Waiting
+              Approver 1/2 must go through Approve normally instead. Re-enforced
+              server-side too (approvalController.waiveRequest), never trusted from
+              the client alone. */}
+          {initialData?.status === 'Waiting Approver 3' && (
+            <button
+              type="button"
+              onClick={handleWaiveClick}
+              disabled={saving}
+              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            >
+              <MinusCircle size={16} /> Waive
+            </button>
+          )}
         </>
       ) : isLegalMode ? (
         <>
@@ -429,12 +455,12 @@ export default function EditRequestModal({
           </button>
           <button
             type="button"
-            onClick={handleNoNeedClick}
+            onClick={handleWaiveClick}
             disabled={saving}
-            title={LEGAL_BUTTON_TOOLTIPS.noNeed}
+            title={LEGAL_BUTTON_TOOLTIPS.waive}
             className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
           >
-            <MinusCircle size={16} /> No Need
+            <MinusCircle size={16} /> Waive
           </button>
           {/* Drafted contracts offer Cancel; every other status (Signed, and any
               other status that could theoretically land here) keeps Terminate —
@@ -525,14 +551,6 @@ export default function EditRequestModal({
       )}
       <button
         type="button"
-        onClick={handleDownloadPdfClick}
-        disabled={pdfDownloading}
-        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
-      >
-        {pdfDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Download PDF
-      </button>
-      <button
-        type="button"
         onClick={onClose}
         disabled={saving}
         className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
@@ -546,7 +564,7 @@ export default function EditRequestModal({
     <>
       <FormModal
         open
-        centerTitle={isLegalMode || isLegalHistoryMode || !!titleOverride || isLinkedRequest || isEditMode || isReadOnlyMode}
+        centerTitle={isLegalMode || isLegalHistoryMode || !!titleOverride || isLinkedRequest || isEditMode || isReadOnlyMode || isApproveMode}
         // Legal > Waiting (mode="legal") and Legal > History (mode="legal-history") both
         // always show "{Remark} Contract - {contract_no}" as one plain centered title —
         // "Cancel Contract - DSST03-2026", "New Contract - DSST03-2026", etc. —
@@ -559,35 +577,69 @@ export default function EditRequestModal({
         //
         // Linked-request header (every other mode) matches LinkedRequestModal's exactly —
         // "Renew Contract - DSST01-2026" as one plain centered title. Plain Edit mode
-        // (remark = 'new') gets the same centered treatment but describes the row's own
-        // status instead of a remark — "Edit Drafted Contract - DSST02-2026" — since
-        // there's no contract number at all until status reaches 'Drafted'. Read-only View
+        // (remark = 'new', the only remark that ever reaches this branch — every other
+        // remark is isLinkedRequest, checked above) gets the same centered treatment but
+        // swaps the status/contract-no text for the orange "Edit" badge plus a plain
+        // "New Contract" — "[Edit] New Contract", mirroring "[Request] New Contract"
+        // below. No status, no contract number: the contract number, when there is one,
+        // already shows in the body via NewRequestHeader, and the status is visible from
+        // the row the user just clicked Edit on. Read-only View
         // mode (Job Status/Approval "My History" — see MyHistoryTab.jsx) mirrors My Job's
         // header exactly for the same 'new'-remark case, just without the "Edit" verb
         // since nothing here is editable — "Signed Contract - DSST01-2026". Every other
         // mode keeps "Approval"/etc. plus the separate Remark badge + contract-no chip.
-        // titleOverride (All Job only) wins over all of the above — same centered/no-badge
-        // header layout as Edit mode, just a fixed "Edit Contract" instead of status/
-        // contractNo/remark-derived text, regardless of which row/remark was opened.
+        // titleOverride (My Job/All Job) wins over all of the above — same centered
+        // "Edit" badge as plain Edit mode above, plus a fixed "Contract" next to it (so
+        // it reads "[Edit] Contract"), regardless of which row/remark/status was opened;
+        // callers pass the badge's own label text (see MyJobTab.jsx/AllJobTab.jsx).
         title={
           isLegalMode || isLegalHistoryMode
             ? `${REMARK_LABELS[initialData?.remark] || initialData?.remark || ''}${
                 initialData?.contractNo ? ` - ${initialData.contractNo}` : ''
               }`
             : titleOverride
-              ? titleOverride
-              : isLinkedRequest
-                ? `${REMARK_LABELS[initialData.remark] || initialData.remark}${
-                    initialData.referContractNo ? ` - ${initialData.referContractNo}` : ''
-                  }`
-                : isEditMode
-                  ? `Edit ${initialData?.status || ''} Contract${initialData?.contractNo ? ` - ${initialData.contractNo}` : ''}`
-                  : isReadOnlyMode
-                    ? `${initialData?.status || ''} Contract${initialData?.contractNo ? ` - ${initialData.contractNo}` : ''}`
-                    : MODE_TITLES[mode] || MODE_TITLES.edit
+              ? (
+                  <span className="inline-flex items-center gap-2">
+                    <EditBadge>{titleOverride}</EditBadge> Contract
+                  </span>
+                )
+              : // Approve (Approval > Waiting) and read-only View (Approval > History,
+                // Job Status > My History) both get the blue "Request" badge in front of
+                // the title — a plain 'new' contract reads "[Request] New Contract", every
+                // other remark reads "[Request] Renew Contract - DSST01-2026" (same text
+                // isLinkedRequest below produces for Edit mode, just without the badge —
+                // Edit mode isn't "a request awaiting action" the way these two are).
+                (isApproveMode || isReadOnlyMode) && initialData?.remark === 'new'
+                ? (
+                    <span className="inline-flex items-center gap-2">
+                      <RequestBadge /> New Contract
+                    </span>
+                  )
+                : (isApproveMode || isReadOnlyMode) && isLinkedRequest
+                  ? (
+                      <span className="inline-flex items-center gap-2">
+                        <RequestBadge />
+                        {`${REMARK_LABELS[initialData.remark] || initialData.remark}${
+                          initialData.referContractNo ? ` - ${initialData.referContractNo}` : ''
+                        }`}
+                      </span>
+                    )
+                  : isLinkedRequest
+                    ? `${REMARK_LABELS[initialData.remark] || initialData.remark}${
+                        initialData.referContractNo ? ` - ${initialData.referContractNo}` : ''
+                      }`
+                    : isEditMode
+                      ? (
+                          <span className="inline-flex items-center gap-2">
+                            <EditBadge /> {REMARK_LABELS[initialData?.remark] || initialData?.remark}
+                          </span>
+                        )
+                      : isReadOnlyMode
+                        ? `${initialData?.status || ''} Contract${initialData?.contractNo ? ` - ${initialData.contractNo}` : ''}`
+                        : MODE_TITLES[mode] || MODE_TITLES.edit
         }
         titleBadge={
-          isLegalMode || isLegalHistoryMode || titleOverride || isLinkedRequest || isEditMode || isReadOnlyMode ? null : (
+          isLegalMode || isLegalHistoryMode || titleOverride || isLinkedRequest || isEditMode || isReadOnlyMode || isApproveMode ? null : (
             <>
               <RemarkBadge remark={initialData?.remark} />
               {initialData?.confidentiality && <ConfidentialBadge />}

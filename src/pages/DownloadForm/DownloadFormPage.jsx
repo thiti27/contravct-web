@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FileDown, FileText, ClipboardCheck } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
-import { fetchForms, fetchGlobalDocuments, downloadUploadFile, fileUrl } from '../../lib/api';
+import { fetchForms, fetchGlobalDocuments, downloadUploadFile, downloadUploadFileFromPath } from '../../lib/api';
 
 export default function DownloadFormPage() {
   const [forms, setForms] = useState([]);
@@ -105,22 +105,22 @@ export default function DownloadFormPage() {
 
                         <div className="flex shrink-0 gap-2 pl-6 sm:pl-0">
                           {item.files.eng && (
-                            <a
-                              href={fileUrl(item.files.eng)}
-                              download
+                            <button
+                              type="button"
+                              onClick={() => downloadUploadFileFromPath(item.files.eng, `${item.name} (ENG)`)}
                               className="flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-600"
                             >
                               <FileDown size={15} /> ENG
-                            </a>
+                            </button>
                           )}
                           {item.files.tha && (
-                            <a
-                              href={fileUrl(item.files.tha)}
-                              download
+                            <button
+                              type="button"
+                              onClick={() => downloadUploadFileFromPath(item.files.tha, `${item.name} (THA)`)}
                               className="flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-600"
                             >
                               <FileDown size={15} /> THA
-                            </a>
+                            </button>
                           )}
                           {checkSheet?.fileId && (
                             <button

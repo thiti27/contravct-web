@@ -31,13 +31,19 @@ const DOCUMENT_DATES = ['2027-04-02', '2027-12-12', '2027-03-05'];
 function buildRowMeta(contracts) {
   let prevSupplier;
   let prevGroupKey;
+  // Increments once per master group (a master row plus every renew/amend/claim/
+  // terminate child row sharing its contract_no) — every row in the same group gets
+  // the same groupIndex, so a child ("sub item") row always ends up the same zebra
+  // color as its own master's Contract No. row, never alternating on its own.
+  let groupIndex = -1;
   const meta = contracts.map(contract => {
     const groupKey = contract.referContractNo || contract.contractNo || `__id_${contract.id}`;
     const isNewCompany = contract.supplier !== prevSupplier;
     const isNewMasterGroup = isNewCompany || groupKey !== prevGroupKey;
     prevSupplier = contract.supplier;
     prevGroupKey = groupKey;
-    return { contract, isNewCompany, isNewMasterGroup, companyRowSpan: 1 };
+    if (isNewMasterGroup) groupIndex += 1;
+    return { contract, isNewCompany, isNewMasterGroup, companyRowSpan: 1, groupIndex };
   });
   meta.forEach((row, i) => {
     if (!row.isNewCompany) return;
@@ -184,7 +190,7 @@ function MoreMenu({
           className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
         >
-          <UploadCloud size={14} /> Upload Sign Contract
+          <UploadCloud size={14} /> Upload Signed Contract
         </button>
       )}
       {showSignedActions && (
@@ -236,7 +242,7 @@ function MoreMenu({
         </>
       )}
       {/* Sibling of showSignedActions (not nested inside it) so this lands right after
-          Terminate for Signed rows, but also right after Upload Sign Contract for
+          Terminate for Signed rows, but also right after Upload Signed Contract for
           Drafted rows — Legal Review covers both statuses (see LEGAL_REVIEW_STATUSES),
           and each status renders nothing else between its own last item and this one. */}
       {showLegalComment && (
@@ -259,6 +265,8 @@ function MoreMenu({
 
 function RowActions({
   contractNo,
+  status,
+  remark,
   onDownload,
   showEdit,
   onEdit,
@@ -289,11 +297,28 @@ function RowActions({
   // `view`-permission gate exists to stop OTHER people opening a confidential contract
   // they don't own, which doesn't apply to a user managing their own request.
   neverDisableMore = false,
+  // My Job/All Job/Contract Making only — a row still in-flight (Saved, Waiting
+  // Approver *, Returned, ...) has no real reason to download yet (often no real
+  // contract_no assigned either), so Download is disabled there until the row reaches
+  // Drafted or Signed. Every other list (Home/Find Contract, Waiting Approve, Legal,
+  // ...) leaves this false and keeps the original contractNo-only check.
+  restrictDownloadToFinal = false,
 }) {
   const effectiveRestricted = neverDisableMore ? false : restricted;
-  const downloadable = contractNo && contractNo !== '-' && !effectiveRestricted;
+  const downloadable =
+    contractNo &&
+    contractNo !== '-' &&
+    !effectiveRestricted &&
+    (!restrictDownloadToFinal || status === 'Drafted' || status === 'Signed' || status === 'Terminated');
   const hasAnyAction = showEdit || showView || showSignedActions || showCancel || showLegalComment;
-  const moreDisabled = effectiveRestricted || !hasAnyAction;
+  // A Terminate request that's reached Signed means the whole contract is over — the
+  // cascade in signedContractController.js already flipped every other row in the
+  // family to Terminated, so there's nothing left to Renew/Amend/Claim Note/Terminate/
+  // comment on for this row either. Checked here (not by narrowing showSignedActions/
+  // showLegalComment individually above) so it can't be reintroduced by a future action
+  // flag that also happens to key off status === 'Signed'.
+  const isTerminatedRequest = remark === 'terminate' && status === 'Signed';
+  const moreDisabled = effectiveRestricted || !hasAnyAction || isTerminatedRequest;
   const [anchorRect, setAnchorRect] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const btnRef = useRef(null);
@@ -334,7 +359,13 @@ function RowActions({
         type="button"
         onClick={handleDownload}
         disabled={!downloadable || downloading}
-        title={effectiveRestricted ? 'You do not have permission to download this contract.' : undefined}
+        title={
+          effectiveRestricted
+            ? 'You do not have permission to download this contract.'
+            : restrictDownloadToFinal && status !== 'Drafted' && status !== 'Signed' && status !== 'Terminated'
+              ? 'Download is only available once this contract is Drafted, Signed, or Terminated.'
+              : undefined
+        }
         className="mr-1.5 inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white disabled:border disabled:border-dashed disabled:border-slate-200 disabled:bg-white disabled:text-slate-300"
       >
         {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Download
@@ -447,6 +478,8 @@ export default function ContractTable({
   // any row with a referContractNo pointing back to a master). The master itself always
   // shows its own Type/Purpose, whether or not it has children.
   hideChildType = false,
+  // My Job/All Job/Contract Making only — see RowActions' own restrictDownloadToFinal.
+  restrictDownloadToFinal = false,
 }) {
   const { user } = useAuth();
   const rowMeta = buildRowMeta(contracts);
@@ -497,7 +530,11 @@ export default function ContractTable({
             </tr>
           </thead>
           <tbody>
-            {rowMeta.map(({ contract, isNewCompany, companyRowSpan, isLastInCompany, isLastInMasterGroup }, index) => {
+            {rowMeta.map(({ contract, isNewCompany, companyRowSpan, isLastInCompany, isLastInMasterGroup, groupIndex }, index) => {
+              // Alternates gray/white per master group (not per literal row) — every
+              // child/"sub item" row shares its own master's color via the same
+              // groupIndex, see buildRowMeta above.
+              const zebraBg = groupIndex % 2 === 0 ? 'bg-slate-50' : 'bg-white';
               // All Job/Home: creator, `view` permission, or one of the 3 approvers all
               // grant access (see lib/confidentialAccess.js) — same rule the backend
               // re-checks. Everywhere else: confidential contracts require the view
@@ -518,7 +555,7 @@ export default function ContractTable({
                     : 'border-b-0';
               return (
                 <React.Fragment key={contract.id}>
-                  <tr className={`${rowBorder} hover:bg-slate-50/60`}>
+                  <tr className={`${rowBorder} ${zebraBg} hover:bg-slate-100`}>
                     {isNewCompany && (
                       <td rowSpan={companyRowSpan} className="border-r border-slate-100 px-6 py-1.5 align-top font-medium text-navy">
                         {contract.supplier}
@@ -581,6 +618,9 @@ export default function ContractTable({
                     )}
                     <RowActions
                       contractNo={contract.contractNo}
+                      status={contract.status}
+                      remark={contract.remark}
+                      restrictDownloadToFinal={restrictDownloadToFinal}
                       onDownload={() => onDownload?.(contract)}
                       showEdit={enableEdit && EDITABLE_STATUSES.includes(contract.status)}
                       onEdit={() => onEdit?.(contract.id)}
@@ -608,7 +648,7 @@ export default function ContractTable({
 
                   {variant === 'browse' &&
                     contract.documents?.map((doc, index) => (
-                      <tr key={doc} className="border-b border-slate-100 bg-slate-50/40 text-slate-500 last:border-0">
+                      <tr key={doc} className={`border-b border-slate-100 ${zebraBg} text-slate-500 last:border-0`}>
                         <td className="px-6 py-2" />
                         <td className="px-6 py-2">└&nbsp;&nbsp;{doc}</td>
                         <td className="px-6 py-2" />

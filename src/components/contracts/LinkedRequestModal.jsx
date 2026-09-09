@@ -10,6 +10,7 @@ import ContractInfoSection from '../../pages/NewRequest/sections/ContractInfoSec
 import CommentSection from '../../pages/NewRequest/sections/CommentSection';
 import ApprovalSection from '../../pages/NewRequest/sections/ApprovalSection';
 import ActionInfoSection from './ActionInfoSection';
+import RequestBadge from '../ui/RequestBadge';
 import { REMARK_LABELS } from '../ui/RemarkBadge';
 import { useAuth } from '../../context/AuthContext';
 import { fetchContractTypes, fetchContractRequest, submitContractRequest } from '../../lib/api';
@@ -142,7 +143,7 @@ export default function LinkedRequestModal({ masterContract, remark, onClose, on
         disabled={saving}
         className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
       >
-        <X size={16} /> Cancel
+        <X size={16} /> Close
       </button>
     </>
   );
@@ -152,7 +153,12 @@ export default function LinkedRequestModal({ masterContract, remark, onClose, on
       <FormModal
         open
         centerTitle
-        title={`${REMARK_LABELS[remark] || remark}${masterContract.contractNo ? ` - ${masterContract.contractNo}` : ''}`}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <RequestBadge />
+            {`${REMARK_LABELS[remark] || remark}${masterContract.contractNo ? ` - ${masterContract.contractNo}` : ''}`}
+          </span>
+        }
         footer={footer}
         onClose={onClose}
         closeDisabled={saving}

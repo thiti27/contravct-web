@@ -101,9 +101,9 @@ export const router = createBrowserRouter([
               {
                 element: <SettingsLayout />,
                 children: [
-                  { index: true, element: <Navigate to="role" replace /> },
-                  { path: 'role', element: <RoleTab /> },
+                  { index: true, element: <Navigate to="contract-types" replace /> },
                   { path: 'contract-types', element: <ContractTypeTab /> },
+                  { path: 'role', element: <RoleTab /> },
                 ],
               },
             ],

@@ -83,9 +83,21 @@ export default function FormModal({
               )}
             </div>
           ))}
-        <div className={boxed ? 'overflow-y-auto p-6' : 'p-6'}>{children}</div>
+        <div className={boxed ? 'overflow-y-auto p-6' : 'p-6'}>
+          {/* "full" mode has no width cap of its own (unlike "boxed"'s max-w-2xl) —
+              without one, the content just keeps stretching to fill however wide the
+              browser's viewport measures, which grows without bound on browser zoom-out
+              (a wider effective viewport, same physical screen) and looks stretched/
+              awkward at the extremes. Capped at the same 1500px every other page's own
+              content already uses (see PageContainer.jsx) so this stays visually stable
+              regardless of zoom level or monitor width. "boxed" is already capped by its
+              own max-w-2xl, so this wrapper is a no-op there. */}
+          <div className={boxed ? undefined : 'mx-auto max-w-[1500px]'}>{children}</div>
+        </div>
         {footer && (
-          <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4">{footer}</div>
+          <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4">
+            <div className={`flex flex-wrap justify-end gap-3 ${boxed ? '' : 'mx-auto w-full max-w-[1500px]'}`}>{footer}</div>
+          </div>
         )}
       </div>
     </div>

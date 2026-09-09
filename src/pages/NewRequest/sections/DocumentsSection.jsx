@@ -14,12 +14,21 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
   const [uploadingKeys, setUploadingKeys] = useState({});
   const [uploadErrors, setUploadErrors] = useState({});
 
+  // The "checked" box next to each heading isn't something the user toggles anymore —
+  // it's a pure readout of "does this category have at least one file", kept in
+  // `documents.{key}.checked` only because the PDF export still reads that field
+  // directly (see ContractRequisitionFormPDF.jsx) rather than counting files itself.
+  const setFilesAndChecked = (key, files) => {
+    setFieldValue(`documents.${key}.files`, files);
+    setFieldValue(`documents.${key}.checked`, files.length > 0);
+  };
+
   const addFiles = async (key, fileList) => {
     setUploadingKeys(u => ({ ...u, [key]: true }));
     setUploadErrors(e => ({ ...e, [key]: null }));
     try {
       const records = await uploadFiles(fileList);
-      setFieldValue(`documents.${key}.files`, [...values.documents[key].files, ...records]);
+      setFilesAndChecked(key, [...values.documents[key].files, ...records]);
     } catch {
       setUploadErrors(e => ({ ...e, [key]: 'อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }));
     } finally {
@@ -30,8 +39,8 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
   const removeFile = async (key, fileId) => {
     try {
       await deleteUpload(fileId);
-      setFieldValue(
-        `documents.${key}.files`,
+      setFilesAndChecked(
+        key,
         values.documents[key].files.filter(f => f.id !== fileId)
       );
     } catch {
@@ -56,7 +65,7 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
         </span>
         <div>
           <div className="font-bold text-navy">Related Contract Document</div>
-          <div className="text-sm text-slate-500">เอกสารประกอบการพิจารณา — ติ๊กถูกเพื่อแนบไฟล์</div>
+          <div className="text-sm text-slate-500">เอกสารประกอบการพิจารณา — แนบไฟล์แล้วระบบจะติ๊กถูกให้อัตโนมัติ</div>
         </div>
       </div>
 
@@ -73,88 +82,92 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
           // not download/delete what's already there.
           const restrictedFiles = isRestrictedKey && (strictRestriction || !isOwner);
           const blockAttach = isRestrictedKey && strictRestriction;
+          // Checked state is derived from the file list, not a separate user choice —
+          // ticked the moment a file lands here, unable to be unticked while one
+          // remains. The checkbox stays visually identical to a normal ticked box
+          // (no native `disabled` styling) since it's never actually "disabled", just
+          // non-interactive — see the no-op onChange/onClick below.
+          const hasFiles = entry.files.length > 0;
           return (
-            <div key={doc.key} className={`rounded-2xl border p-4 ${entry.checked ? 'border-brand-100 bg-brand-50/30' : 'border-slate-200 bg-slate-50/40'}`}>
+            <div key={doc.key} className={`rounded-2xl border p-4 ${hasFiles ? 'border-brand-100 bg-brand-50/30' : 'border-slate-200 bg-slate-50/40'}`}>
               <label className={`flex items-center gap-2 text-sm font-semibold text-slate-600 ${readOnly ? 'opacity-60' : ''}`}>
                 <input
                   type="checkbox"
-                  checked={entry.checked}
-                  disabled={readOnly}
-                  onChange={e => setFieldValue(`documents.${doc.key}.checked`, e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed"
+                  checked={hasFiles}
+                  onChange={() => {}}
+                  onClick={e => e.preventDefault()}
+                  className="h-4 w-4 cursor-default rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
                 {doc.label}
               </label>
 
-              {entry.checked && (
-                <div className="mt-3 space-y-3 pl-6">
-                  {!readOnly && !blockAttach && (
-                    <div className="flex min-w-[220px] max-w-md items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2.5">
-                      {uploading ? (
-                        <Loader2 size={17} className="shrink-0 animate-spin text-brand-500" />
-                      ) : (
-                        <UploadCloud size={17} className="shrink-0 text-slate-400" />
-                      )}
-                      <span className="flex-1 text-xs text-slate-500">{uploading ? 'กำลังอัปโหลด...' : 'แนบไฟล์ได้หลายไฟล์'}</span>
-                      <label
-                        className={`shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ${
-                          uploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-100'
-                        }`}
-                      >
-                        เลือกไฟล์
-                        <input
-                          type="file"
-                          multiple
-                          disabled={uploading}
-                          className="hidden"
-                          onChange={e => {
-                            if (e.target.files.length) addFiles(doc.key, e.target.files);
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                    </div>
-                  )}
+              <div className="mt-3 space-y-3 pl-6">
+                {!readOnly && !blockAttach && (
+                  <div className="flex min-w-[220px] max-w-md items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2.5">
+                    {uploading ? (
+                      <Loader2 size={17} className="shrink-0 animate-spin text-brand-500" />
+                    ) : (
+                      <UploadCloud size={17} className="shrink-0 text-slate-400" />
+                    )}
+                    <span className="flex-1 text-xs text-slate-500">{uploading ? 'กำลังอัปโหลด...' : 'แนบไฟล์ได้หลายไฟล์'}</span>
+                    <label
+                      className={`shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ${
+                        uploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-100'
+                      }`}
+                    >
+                      เลือกไฟล์
+                      <input
+                        type="file"
+                        multiple
+                        disabled={uploading}
+                        className="hidden"
+                        onChange={e => {
+                          if (e.target.files.length) addFiles(doc.key, e.target.files);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
 
-                  {uploadErrors[doc.key] && <p className="text-xs font-medium text-rose-500">{uploadErrors[doc.key]}</p>}
+                {uploadErrors[doc.key] && <p className="text-xs font-medium text-rose-500">{uploadErrors[doc.key]}</p>}
 
-                  {entry.files.length > 0 && (
-                    <ul className="space-y-1.5">
-                      {entry.files.map(file => (
-                        <li key={file.id} className="flex items-center gap-2 text-sm">
-                          {restrictedFiles ? (
-                            // strictRestriction: real filename never reaches the DOM at
-                            // all, not just visually hidden — "xxxxx" is the only text
-                            // rendered. Plain !isOwner (other pages): filename still
-                            // shows, just not clickable/downloadable (existing behavior).
-                            <span className={`select-none ${strictRestriction ? 'text-slate-400' : 'text-slate-600'}`}>
-                              {strictRestriction ? 'xxxxx' : `${file.fileName}${file.extension}`}
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => downloadFile(doc.key, file)}
-                              className="text-left text-brand-600 underline underline-offset-2 hover:text-brand-700"
-                            >
-                              {file.fileName}
-                              {file.extension}
-                            </button>
-                          )}
-                          {!readOnly && !restrictedFiles && (
-                            <button
-                              type="button"
-                              onClick={() => removeFile(doc.key, file.id)}
-                              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-500"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
+                {hasFiles && (
+                  <ul className="space-y-1.5">
+                    {entry.files.map(file => (
+                      <li key={file.id} className="flex items-center gap-2 text-sm">
+                        {restrictedFiles ? (
+                          // strictRestriction: real filename never reaches the DOM at
+                          // all, not just visually hidden — "xxxxx" is the only text
+                          // rendered. Plain !isOwner (other pages): filename still
+                          // shows, just not clickable/downloadable (existing behavior).
+                          <span className={`select-none ${strictRestriction ? 'text-slate-400' : 'text-slate-600'}`}>
+                            {strictRestriction ? 'xxxxx' : `${file.fileName}${file.extension}`}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => downloadFile(doc.key, file)}
+                            className="text-left text-brand-600 underline underline-offset-2 hover:text-brand-700"
+                          >
+                            {file.fileName}
+                            {file.extension}
+                          </button>
+                        )}
+                        {!readOnly && !restrictedFiles && (
+                          <button
+                            type="button"
+                            onClick={() => removeFile(doc.key, file.id)}
+                            className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           );
         })}

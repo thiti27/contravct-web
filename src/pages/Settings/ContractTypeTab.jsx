@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Pencil, Check, X, ChevronDown, ChevronRight, UploadCloud, FileDown, Loader2, Trash2 } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -17,7 +17,7 @@ import {
   attachGlobalDocument,
   uploadFiles,
   downloadUploadFile,
-  fileUrl,
+  downloadUploadFileFromPath,
 } from '../../lib/api';
 
 // Wraps a mutating action behind a "Confirm to save" popup: ask(fn, successMessage)
@@ -74,6 +74,25 @@ function ActiveToggle({ active, onToggle }) {
 function GlobalDocumentButton({ docKey, label, doc, onChange, onResult }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
+  // Replacing an already-attached file asks first — clicking "Replace X" opens this
+  // confirm instead of the native file picker directly; the picker only opens once
+  // the user says Yes (see confirmReplaceYes). Uploading the very first file (no doc
+  // attached yet, button reads "Upload X") skips this and opens the picker right away.
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleButtonClick = () => {
+    if (doc?.filePath) {
+      setConfirmReplace(true);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const confirmReplaceYes = () => {
+    setConfirmReplace(false);
+    fileInputRef.current?.click();
+  };
 
   const pickAndAttach = async e => {
     const file = e.target.files[0];
@@ -121,7 +140,10 @@ function GlobalDocumentButton({ docKey, label, doc, onChange, onResult }) {
         <FileDown size={18} />
       </button>
 
-      <label
+      <button
+        type="button"
+        onClick={handleButtonClick}
+        disabled={busy}
         title={tooltip}
         className={`flex h-11 w-56 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-card ${
           busy ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-50'
@@ -129,8 +151,15 @@ function GlobalDocumentButton({ docKey, label, doc, onChange, onResult }) {
       >
         {busy ? <Loader2 size={16} className="shrink-0 animate-spin" /> : <UploadCloud size={16} className="shrink-0" />}
         <span className="truncate">{doc?.filePath ? `Replace ${label}` : `Upload ${label}`}</span>
-        <input type="file" className="hidden" disabled={busy} onChange={pickAndAttach} />
-      </label>
+      </button>
+      <input ref={fileInputRef} type="file" className="hidden" disabled={busy} onChange={pickAndAttach} />
+
+      <ConfirmModal
+        open={confirmReplace}
+        message={`Replace the current ${label}?`}
+        onConfirm={confirmReplaceYes}
+        onCancel={() => setConfirmReplace(false)}
+      />
     </div>
   );
 }
@@ -141,7 +170,26 @@ function GlobalDocumentButton({ docKey, label, doc, onChange, onResult }) {
 function FormItemLangRow({ purpose, lang, label, onChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Same "confirm before the native file picker opens" gate as GlobalDocumentButton
+  // above — only when replacing an already-attached file (path truthy); the initial
+  // "Attach" with nothing attached yet opens the picker immediately.
+  const [confirmReplace, setConfirmReplace] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const fileInputRef = useRef(null);
   const path = lang === 'eng' ? purpose.formItem?.fileEngPath : purpose.formItem?.fileThaPath;
+
+  const handlePickClick = () => {
+    if (path) {
+      setConfirmReplace(true);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const confirmReplaceYes = () => {
+    setConfirmReplace(false);
+    fileInputRef.current?.click();
+  };
 
   const pickAndAttach = async e => {
     const file = e.target.files[0];
@@ -160,7 +208,8 @@ function FormItemLangRow({ purpose, lang, label, onChange }) {
     }
   };
 
-  const remove = async () => {
+  const confirmDeleteYes = async () => {
+    setConfirmDelete(false);
     setBusy(true);
     try {
       await deleteFormItemLang(purpose.id, lang);
@@ -175,32 +224,34 @@ function FormItemLangRow({ purpose, lang, label, onChange }) {
       <span className="w-10 shrink-0 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</span>
 
       {path ? (
-        <a
-          href={fileUrl(path)}
-          target="_blank"
-          rel="noreferrer"
-          className="flex flex-1 items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
+        <button
+          type="button"
+          onClick={() => downloadUploadFileFromPath(path, `${purpose.purposeText} (${label})`)}
+          className="flex flex-1 items-center gap-1.5 text-left text-sm font-semibold text-brand-600 hover:underline"
         >
           <FileDown size={14} /> Download current file
-        </a>
+        </button>
       ) : (
         <span className="flex-1 text-sm text-slate-400">No file attached</span>
       )}
 
       <div className="flex shrink-0 items-center gap-2">
-        <label
+        <button
+          type="button"
+          onClick={handlePickClick}
+          disabled={busy}
           className={`flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 ${
             busy ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-100'
           }`}
         >
           {busy ? <Loader2 size={13} className="animate-spin" /> : <UploadCloud size={13} />}
           {path ? 'Replace' : 'Attach'}
-          <input type="file" className="hidden" disabled={busy} onChange={pickAndAttach} />
-        </label>
+        </button>
+        <input ref={fileInputRef} type="file" className="hidden" disabled={busy} onChange={pickAndAttach} />
         {path && (
           <button
             type="button"
-            onClick={remove}
+            onClick={() => setConfirmDelete(true)}
             disabled={busy}
             className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
           >
@@ -210,6 +261,20 @@ function FormItemLangRow({ purpose, lang, label, onChange }) {
       </div>
 
       {error && <span className="w-full text-xs font-medium text-rose-500">{error}</span>}
+
+      <ConfirmModal
+        open={confirmReplace}
+        message={`Replace the current ${label} file?`}
+        onConfirm={confirmReplaceYes}
+        onCancel={() => setConfirmReplace(false)}
+      />
+      <ConfirmModal
+        open={confirmDelete}
+        busy={busy}
+        message={`Delete the current ${label} file?`}
+        onConfirm={confirmDeleteYes}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

@@ -18,8 +18,8 @@ export const LEGAL_TABS = [
 ];
 
 export const SETTINGS_TABS = [
-  { key: 'role', label: 'Role' },
   { key: 'contract-types', label: 'Contract Type' },
+  { key: 'role', label: 'Role' },
 ];
 
 // Top level primary navigation. `badgeKey` maps into the counts object returned by

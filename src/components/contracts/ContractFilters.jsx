@@ -1,4 +1,4 @@
-import { Search, RotateCcw, Download } from 'lucide-react';
+import { Search, RotateCcw, Download, Loader2 } from 'lucide-react';
 import SelectField from '../ui/SelectField';
 import AlphabetBrowse from './AlphabetBrowse';
 
@@ -15,6 +15,8 @@ export default function ContractFilters({
   showSection = true,
   showBrowse = false,
   showExport = false,
+  onExport,
+  exporting = false,
 }) {
   const set = (key, value) => onChange({ ...filters, [key]: value });
   const shouldShowStatus = showStatus ?? (statusOptions && statusOptions.length > 1);
@@ -38,8 +40,13 @@ export default function ContractFilters({
         <RotateCcw size={16} /> Clear
       </button>
       {showExport && (
-        <button className="flex h-11 items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
-          <Download size={16} /> Export
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={exporting}
+          className="flex h-11 items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+        >
+          {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Export
         </button>
       )}
     </>

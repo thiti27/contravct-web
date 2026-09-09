@@ -53,7 +53,7 @@ Font.registerHyphenationCallback(word => [word]);
 // this physical form — the real template predates that feature — so they're
 // intentionally left off, same call made for the LibreOffice-based PDF attempt earlier.
 // ---------------------------------------------------------------------------
-
+const GRAY = '#D9D9D9'; // เทากลางอ่อน
 const YELLOW = '#FFFFCC';
 const BLUE = '#0000FF';
 const RED = '#FF0000';
@@ -80,14 +80,19 @@ const styles = StyleSheet.create({
   footerPageNumber: { fontSize: 8, color: '#444444' },
   footerCode: { fontSize: 6.5, color: '#444444' },
 
-  headerRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: BORDER, padding: 6 },
+  // Border/padding moved onto this outer wrapper so a second row (the Waived warning,
+  // shown conditionally below headerRow) can sit inside the same bordered box instead
+  // of getting its own separate border.
+  headerBox: { borderWidth: 1, borderColor: BORDER, padding: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  waivedWarning: { fontWeight: 'bold', fontSize: 10, color: RED, textAlign: 'center', marginTop: 4 },
   contractTypeBox: { width: 90 },
   contractTypeLabel: { fontWeight: 'bold', fontSize: 9 },
-  contractTypeValue: { marginTop: 10, borderBottomWidth: 1, borderColor: BORDER, fontSize: 9, minHeight: 12 },
-  logo: { width: 46, height: 26, marginRight: 8 },
+  contractTypeValue: { marginTop: 2, borderBottomWidth: 1, borderColor: BORDER, fontSize: 8, minHeight: 12 },
+  logo: { width: 80, height: 30, marginLeft: 50 , marginRight : -30 , marginTop:-7},
   titleBox: { flex: 1, alignItems: 'center' },
-  titleText: { fontWeight: 'bold', fontSize: 12 },
-  titleSubText: { fontSize: 9 },
+  titleText: { fontWeight: 'bold', fontSize: 12 , marginTop:-14},
+  titleSubText: { fontSize: 9, textAlign: 'center' },
   metaBox: { width: 130, alignItems: 'flex-end' },
   confidentialText: { fontWeight: 'bold', fontSize: 11, color: RED },
   metaLine: { flexDirection: 'row', marginTop: 2 },
@@ -113,12 +118,16 @@ const styles = StyleSheet.create({
   // width, since this is a column stack rather than a row with a fixed side column.
   briefDescriptionBox: { marginBottom: 2 },
   briefDescriptionLabel: { fontWeight: 'bold', marginBottom: 2 },
-  briefDescriptionValue: { color: BLUE },
+  // borderBottomWidth on a Text node styles its own multi-line bounding box, not each
+  // individual line — so this one border lands right under the last actual line of
+  // wrapped text, same underline every other field's value gets, regardless of how
+  // many lines (or, if it spans a page break, how many the last page's share is).
+  briefDescriptionValue: { color: BLUE, borderBottomWidth: 0.5, borderColor: BORDER },
 
   // No top border — the box immediately above (infoBox / paymentBox / cautionBox) already
   // supplies that line via its own bottom border; adding one here too just doubles it
   // into a thick/doubled-looking line at the seam.
-  sectionHeader: { backgroundColor: YELLOW, borderBottomWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: BORDER, paddingVertical: 2, alignItems: 'center' },
+  sectionHeader: { backgroundColor: GRAY, borderBottomWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: BORDER, paddingVertical: 2, alignItems: 'center' },
   sectionHeaderText: { fontWeight: 'bold', fontSize: 9, textAlign: 'center' },
 
   paymentBox: { borderWidth: 1, borderTopWidth: 0, borderColor: BORDER, padding: 6 },
@@ -131,8 +140,8 @@ const styles = StyleSheet.create({
   // Same reasoning as sectionHeader above — no top border, paymentBox right above it
   // already supplies that line.
   twoColHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: BORDER },
-  docColHeader: { width: '42%', backgroundColor: YELLOW, borderRightWidth: 1, borderColor: BORDER, paddingVertical: 2, alignItems: 'center' },
-  commentColHeader: { flex: 1, backgroundColor: YELLOW, paddingVertical: 2, alignItems: 'center' },
+  docColHeader: { width: '42%', backgroundColor: GRAY, borderRightWidth: 1, borderColor: BORDER, paddingVertical: 2, alignItems: 'center' },
+  commentColHeader: { flex: 1, backgroundColor: GRAY, paddingVertical: 2, alignItems: 'center' },
   // flexGrow: 1 on both this wrapper and twoColBox below is the whole "push Section
   // pproval to the bottom of the page" mechanism — no hardcoded height anywhere. Page
   // has a fixed height (size="A4"), so Yoga (react-pdf's flexbox engine) resolves this
@@ -150,11 +159,11 @@ const styles = StyleSheet.create({
   checkboxLabel: { flex: 1, fontSize: 8.5 },
   commentLine: { fontSize: 8, marginBottom: 6, paddingBottom: 2, borderBottomWidth: 0.5, borderColor: BORDER },
   commentEntry: { marginBottom: 6, paddingBottom: 2, borderBottomWidth: 0.5, borderColor: BORDER },
-  commentText: { fontSize: 8 },
-  commentMeta: { fontSize: 7, color: '#555555', marginTop: 2 },
+  commentText: { fontSize: 8,color: BLUE},
+  commentMeta: { fontSize: 7,color: BLUE, marginTop: 2 },
 
   cautionBox: { borderWidth: 1, borderTopWidth: 0, borderColor: BORDER, padding: 6 },
-  cautionEn: { color: BLUE, fontWeight: 'bold', fontSize: 8.5 },
+  cautionEn: { color: RED, fontWeight: 'bold', fontSize: 8.5 },
   cautionTh: { fontWeight: 'bold', fontSize: 8.5, marginTop: 2 },
 
   approvalMetaRow: { flexDirection: 'row', borderWidth: 1, borderTopWidth: 0, borderColor: BORDER, padding: 6, alignItems: 'flex-start' },
@@ -224,7 +233,13 @@ const REMARK_ITEMS = [
   { key: 'claim', label: 'Claim Note' },
   { key: 'terminate', label: 'Terminate' },
   { key: 'cancel', label: 'Cancel Contract' },
+  { key: 'waived', label: 'Waived' },
 ];
+
+// 7 items across the 3 approver rows no longer splits evenly 2-per-row — the last
+// row picks up the extra (Waived). Boundaries into REMARK_ITEMS per rowIndex: row 0
+// gets items [0,2), row 1 gets [2,4), row 2 gets [4,7).
+const REMARK_ROW_BOUNDARIES = [0, 2, 4, 7];
 
 const PAYMENT_LABELS = [
   ['1st Payment (งวดที่ 1)', 'payment1'],
@@ -251,31 +266,56 @@ export default function ContractRequisitionFormPDF({ data, contractTypeLabel }) 
   const payments = data.payments || {};
   const comments = data.comments || [];
   const approverSignatures = data.approverSignatures || [];
+  // The Remark checkboxes below reflect this row's own remark column (New/Renew/Amend/
+  // .../Terminate) for every other status, but once status has actually reached
+  // Terminated — whether this row's own remark is 'terminate', or it's a sibling (New/
+  // Amend/...) cascaded there by a Terminate request's own Signed upload, see
+  // signedContractController.js's terminateContractFamily — the contract itself is
+  // done, so the form should show Terminate checked regardless of what remark this
+  // particular row was originally created with.
+  const remarkForCheckbox = data.status === 'Terminated' ? 'terminate' : data.remark;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          <View style={styles.contractTypeBox}>
-            <Text style={styles.contractTypeLabel}>Contract Type :</Text>
-            <Text style={styles.contractTypeValue}>{contractTypeLabel || ''}</Text>
-          </View>
-          <Image src="/company.png" style={styles.logo} />
-          <View style={styles.titleBox}>
-            <Text style={styles.titleText}>Contract Requisition Form</Text>
-            <Text style={styles.titleSubText}>(แบบฟอร์มร้องขอทำสัญญา)</Text>
-          </View>
-          <View style={styles.metaBox}>
-            <Text style={styles.confidentialText}>{data.confidentiality ? 'HIGH CONFIDENTIAL' : 'CONFIDENTIAL'}</Text>
-            <View style={styles.metaLine}>
-              <Text style={styles.metaLabel}>DSST:</Text>
-              <Text style={styles.metaValue}>{data.contractNo || '-'}</Text>
+        <View style={styles.headerBox}>
+          <View style={styles.headerRow}>
+            <View style={styles.contractTypeBox}>
+              <Text style={styles.contractTypeLabel}>Contract Type :</Text>
+              <Text style={styles.contractTypeValue}>{contractTypeLabel || ''}</Text>
             </View>
-            <View style={styles.metaLine}>
-              <Text style={styles.metaLabel}>DATE:</Text>
-              <Text style={styles.metaValue}>{formatDateSlash(approverSignatures[0]?.approvedAt) || '-'}</Text>
+            <Image src="/company.png" style={styles.logo} />
+            <View style={styles.titleBox}>
+              <Text style={styles.titleText}>Contract Requisition Form</Text>
+              {/* Explicit line break — the whole phrase has no spaces, so it's one
+                unbreakable "word" to react-pdf's line-wrapper (see the hyphenation
+                override at the top of this file); left to wrap on its own, the
+                closing ")" was getting clipped off entirely instead of wrapping.
+                Same fix already used below for "Related Contract Document (...)" . */}
+            {/* Explicit line break — the whole phrase has no spaces, so it's one
+                unbreakable "word" to react-pdf's line-wrapper (see the hyphenation
+                override at the top of this file); left to wrap on its own, the
+                closing ")" gets clipped off entirely instead of wrapping onto a new
+                line. Same fix already used below for "Related Contract Document
+                (...)" — don't remove this line break, the closing ")" disappears
+                without it (confirmed visually, not just a text-extraction artifact). */}
+            <Text style={styles.titleSubText}>(แบบฟอร์มร้องขอทำสัญญา))</Text>
+            </View>
+            <View style={styles.metaBox}>
+              <Text style={styles.confidentialText}>{data.confidentiality ? 'HIGH CONFIDENTIAL' : 'CONFIDENTIAL'}</Text>
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>DSST:</Text>
+                <Text style={styles.metaValue}>{data.contractNo || '-'}</Text>
+              </View>
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>DATE:</Text>
+                <Text style={styles.metaValue}>{formatDateSlash(approverSignatures[0]?.approvedAt) || '-'}</Text>
+              </View>
             </View>
           </View>
+          {data.remark === 'waived' && (
+            <Text style={styles.waivedWarning}>Contract Requirement Waived (ONLY THIS MATTER)</Text>
+          )}
         </View>
 
         <View style={styles.infoBox}>
@@ -306,7 +346,7 @@ export default function ContractRequisitionFormPDF({ data, contractTypeLabel }) 
             </View>
             <View style={styles.infoHalf}>
               <Text style={styles.fieldLabel}>Refer to Contract No. :</Text>
-              <Text style={styles.fieldValue}>{data.referContractNo}</Text>
+              <Text style={styles.fieldValue}>{data.referContractNo || "-"}</Text>
             </View>
           </View>
           {/* Full width, default wrap (react-pdf paginates a Text node's own content
@@ -354,7 +394,7 @@ export default function ContractRequisitionFormPDF({ data, contractTypeLabel }) 
               {PAYMENT_LABELS.map(([label, key]) => (
                 <View key={key} style={styles.installmentCell}>
                   <Text style={styles.installmentLabelText}>{label}</Text>
-                  <Text style={styles.installmentValueText}>{payments[key]}</Text>
+                  <Text style={styles.installmentValueText}>{payments[key] || "-"}</Text>
                 </View>
               ))}
             </View>
@@ -461,8 +501,8 @@ export default function ContractRequisitionFormPDF({ data, contractTypeLabel }) 
                       )}
                     </View>
                     <View style={styles.approverRemarkCell}>
-                      {REMARK_ITEMS.slice(rowIndex * 2, rowIndex * 2 + 2).map(item => (
-                        <Checkbox key={item.key} checked={data.remark === item.key} label={item.label} />
+                      {REMARK_ITEMS.slice(REMARK_ROW_BOUNDARIES[rowIndex], REMARK_ROW_BOUNDARIES[rowIndex + 1]).map(item => (
+                        <Checkbox key={item.key} checked={remarkForCheckbox === item.key} label={item.label} />
                       ))}
                     </View>
                   </View>

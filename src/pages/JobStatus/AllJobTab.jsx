@@ -13,13 +13,16 @@ export default function AllJobTab() {
       // for anyone viewing a job here who isn't its creator or one of its 3 approvers, or
       // who lacks the `view` permission — see EditRequestModal.jsx/DocumentsSection.jsx.
       enforceFilePermission
-      // Header-only: Edit modal always reads "Edit Contract", centered, regardless of
-      // the row's status/contractNo/remark — see EditRequestModal.jsx's titleOverride.
-      editModalTitle="Edit Contract"
+      // Header-only: Edit modal always shows a single centered "Edit" badge, regardless
+      // of the row's status/contractNo/remark — see EditRequestModal.jsx's titleOverride.
+      editModalTitle="Edit"
       // HIGH CONFIDENTIAL rows stay fully accessible (View/Download, not disabled) when
       // the viewer is this job's creator, holds `view`, or is one of its 3 approvers —
       // see ContractTable.jsx's checkJobPermission and lib/confidentialAccess.js.
       checkJobPermission
+      // A row still in-flight (Saved, Waiting Approver *, Returned, ...) has nothing
+      // meaningful to download yet — only Drafted/Signed rows offer it.
+      restrictDownloadToFinal
     />
   );
 }

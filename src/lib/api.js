@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-export const SERVER_BASE = 'http://localhost:1312';
-// export const SERVER_BASE = 'http://159.228.251.234:1312';
+// export const SERVER_BASE = 'http://localhost:1312';
+export const SERVER_BASE = 'http://159.228.251.234:1312';
 export const API_BASE = `${SERVER_BASE}/api`;
 
 export const fileUrl = path => `${SERVER_BASE}${path}`;
@@ -57,6 +57,13 @@ export function fetchMeta(params = {}) {
 export function fetchContracts(filters = {}) {
   const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
   return apiClient.get('/contracts', { params }).then(res => res.data);
+}
+
+// Home's Export button — every row matching the given filters, ignoring pagination
+// (same filter shape fetchContracts takes; pass the same object minus page/pageSize).
+export function exportContracts(filters = {}) {
+  const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+  return apiClient.get('/contracts/export', { params }).then(res => res.data);
 }
 
 // Approval > My History — Approve/Return/Reject actions taken by the given em_id.
@@ -119,6 +126,29 @@ export function deleteFormItemLang(purposeId, lang) {
 }
 
 // ---------------------------------------------------------------------------
+// Admin: Settings > Role Management (/settings/role) — who has view/admin/legal.
+// Backend re-checks req.user.admin on every one of these (see requireAdmin in
+// contract-server's middleware/auth.js) — the frontend route is admin-only too
+// (RequireRole on /settings), but that's only a UI convenience, not the real gate.
+// ---------------------------------------------------------------------------
+export function fetchRoles(filters = {}) {
+  const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+  return apiClient.get('/admin/roles', { params }).then(res => res.data);
+}
+
+export function createRole(payload) {
+  return apiClient.post('/admin/roles', payload).then(res => res.data);
+}
+
+export function updateRole(id, payload) {
+  return apiClient.patch(`/admin/roles/${id}`, payload).then(res => res.data);
+}
+
+export function deleteRole(id, payload) {
+  return apiClient.delete(`/admin/roles/${id}`, { data: payload }).then(res => res.data);
+}
+
+// ---------------------------------------------------------------------------
 // Global documents: Contract Procedure, User Manual (both Home page), and Check
 // Sheet (every row on Download Form). Exactly one of each, managed from
 // Settings > Contract Type.
@@ -161,7 +191,7 @@ export async function downloadContractPdf(id, displayName) {
 }
 
 // ---------------------------------------------------------------------------
-// Approval workflow (Waiting Approve screen) — Approve / Return / Reject.
+// Approval workflow (Waiting Approve screen) — Approve / Return / Reject / Waive.
 // ---------------------------------------------------------------------------
 export function approveContractRequest(id, payload) {
   return apiClient.post(`/contract-request/${id}/approve`, payload).then(res => res.data);
@@ -175,8 +205,15 @@ export function rejectContractRequest(id, payload) {
   return apiClient.post(`/contract-request/${id}/reject`, payload).then(res => res.data);
 }
 
+// Fast-tracks a Waiting Approver 1/2/3 request straight to 'Signed', skipping any
+// remaining approver stages — same underlying action name/shape as Legal Review
+// Mode's own waiveLegalRequest below, just reached from a different screen.
+export function waiveContractRequest(id, payload) {
+  return apiClient.post(`/contract-request/${id}/waive`, payload).then(res => res.data);
+}
+
 // ---------------------------------------------------------------------------
-// Legal Review Mode (Legal > Waiting screen) — Comment / Check / Terminate.
+// Legal Review Mode (Legal > Waiting screen) — Comment / Check / Terminate / Waive.
 // ---------------------------------------------------------------------------
 export function commentOnLegalRequest(id, payload) {
   return apiClient.post(`/contract-request/${id}/legal-comment`, payload).then(res => res.data);
@@ -190,8 +227,8 @@ export function terminateLegalRequest(id, payload) {
   return apiClient.post(`/contract-request/${id}/legal-terminate`, payload).then(res => res.data);
 }
 
-export function markNoNeedLegalRequest(id, payload) {
-  return apiClient.post(`/contract-request/${id}/legal-no-need`, payload).then(res => res.data);
+export function waiveLegalRequest(id, payload) {
+  return apiClient.post(`/contract-request/${id}/legal-waive`, payload).then(res => res.data);
 }
 
 export function cancelLegalRequest(id, payload) {
@@ -199,7 +236,7 @@ export function cancelLegalRequest(id, payload) {
 }
 
 // ---------------------------------------------------------------------------
-// Upload Sign Contract (More > Upload Sign Contract, only while status = 'Drafted').
+// Upload Signed Contract (More > Upload Signed Contract, only while status = 'Drafted').
 // ---------------------------------------------------------------------------
 export function uploadSignedContract(id, payload) {
   return apiClient.post(`/contract-request/${id}/upload-signed`, payload).then(res => res.data);
@@ -215,6 +252,20 @@ export function deleteUpload(id) {
   return apiClient.delete(`/uploads/${id}`).then(res => res.data);
 }
 
+// Content-Disposition's filename is what uploadController.downloadUpload actually set
+// server-side (record.fileName + record.extension) — pulling just the extension back
+// out of it (never the whole name; see downloadUploadFile's own comment on why) covers
+// callers that pass a displayName with no extension of its own, e.g.
+// downloadUploadFileFromPath below, which only has a purpose/item's plain text name to
+// work with, nothing that carries the real file's extension.
+function extensionFromContentDisposition(contentDisposition) {
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition || '');
+  if (!match) return '';
+  const name = decodeURIComponent(match[1]);
+  const dot = name.lastIndexOf('.');
+  return dot === -1 ? '' : name.slice(dot);
+}
+
 // Every route requires the Bearer token now (see the request interceptor above), but
 // a plain <a href={...}> download link is a raw browser navigation — it can't attach
 // that header, so it always 401'd. Fetching the file through apiClient (blob response,
@@ -222,17 +273,52 @@ export function deleteUpload(id) {
 // URL keeps the request authenticated. Passing `displayName` straight to the anchor's
 // `download` attribute — a real JS string, no header/encoding involved — also means
 // non-ASCII (e.g. Thai) filenames come through correctly regardless of what the
-// server's Content-Disposition header says.
+// server's Content-Disposition header says (the header itself is only ever consulted
+// for its extension, which is always plain ASCII, never the whole name).
 export async function downloadUploadFile(id, displayName) {
   const res = await apiClient.get(`/uploads/${id}/download`, { responseType: 'blob' });
+  const extension = extensionFromContentDisposition(res.headers['content-disposition']);
+  const name =
+    displayName && extension && !displayName.toLowerCase().endsWith(extension.toLowerCase())
+      ? `${displayName}${extension}`
+      : displayName || '';
   const blobUrl = URL.createObjectURL(res.data);
   const link = document.createElement('a');
   link.href = blobUrl;
-  link.download = displayName || '';
+  link.download = name;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(blobUrl);
+}
+
+// Form item ENG/THA files (Download Form page, Settings > Contract Types' own "Download
+// current file" link) are stored as the full `/api/uploads/:id/download` path rather
+// than a bare id (see contractTypeController.js's attachFormItem) — this pulls the id
+// back out and reuses downloadUploadFile above so these downloads go through the same
+// authenticated blob fetch instead of a plain <a href> (which 401'd every time, same
+// reasoning as downloadUploadFile's own comment).
+export function downloadUploadFileFromPath(path, displayName) {
+  const match = /\/uploads\/(\d+)\/download/.exec(path || '');
+  if (!match) return Promise.reject(new Error('Invalid file path.'));
+  return downloadUploadFile(match[1], displayName);
+}
+
+// Same authenticated blob fetch as downloadUploadFile above, but hands back the raw
+// blob + extension instead of saving straight to disk — used by the Drafted-status zip
+// download (see contracts/downloadDraftedContractZip.js) to bundle several files'
+// worth of these into a single archive instead of triggering N separate saves.
+export async function fetchUploadBlob(id) {
+  const res = await apiClient.get(`/uploads/${id}/download`, { responseType: 'blob' });
+  return { blob: res.data, extension: extensionFromContentDisposition(res.headers['content-disposition']) };
+}
+
+// Same id-out-of-path convenience as downloadUploadFileFromPath above, for
+// fetchUploadBlob instead of downloadUploadFile.
+export function fetchUploadBlobFromPath(path) {
+  const match = /\/uploads\/(\d+)\/download/.exec(path || '');
+  if (!match) return Promise.reject(new Error('Invalid file path.'));
+  return fetchUploadBlob(match[1]);
 }
 
 export async function login(username, password) {

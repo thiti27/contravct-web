@@ -11,6 +11,9 @@ import { useMetaContext } from '../../context/MetaContext';
 import { useAuth } from '../../context/AuthContext';
 import { fetchContractRequest } from '../../lib/api';
 import { downloadContractRequisitionFormPdf } from '../../pdf/downloadContractRequisitionFormPdf';
+import { downloadDraftedContractZip } from '../../lib/downloadDraftedContractZip';
+import { downloadSignedContractZip } from '../../lib/downloadSignedContractZip';
+import { downloadContractsXlsx } from '../../lib/exportContractsXlsx';
 import { normalizeThousands } from '../../lib/formatNumber';
 
 const PAGE_SIZE = 10;
@@ -50,6 +53,8 @@ export default function ContractListPage({
   checkJobPermission = false,
   // Home only — see ContractTable.jsx's hideChildType.
   hideChildType = false,
+  // My Job/All Job/Contract Making only — see ContractTable.jsx's restrictDownloadToFinal.
+  restrictDownloadToFinal = false,
 }) {
   const meta = useMetaContext();
   const { user } = useAuth();
@@ -61,6 +66,7 @@ export default function ContractListPage({
   const [uploadSignContract, setUploadSignContract] = useState(null);
   const [linkedRequest, setLinkedRequest] = useState(null); // { masterContract, remark } | null
   const [refreshKey, setRefreshKey] = useState(0);
+  const [exporting, setExporting] = useState(false);
 
   const openLinkedRequest = remark => masterContract => setLinkedRequest({ masterContract, remark });
 
@@ -81,7 +87,23 @@ export default function ContractListPage({
     // normalizeThousands step before the data ever reaches its formik values (and so,
     // its own Download PDF button); doing it here too keeps the PDF's number
     // formatting identical regardless of which page triggered the download.
-    await downloadContractRequisitionFormPdf({ ...data, totalNetPrice: normalizeThousands(data.totalNetPrice) }, contract.type);
+    const pdfData = { ...data, totalNetPrice: normalizeThousands(data.totalNetPrice) };
+    // Drafted/Signed/Terminated are the only statuses this Download button is ever
+    // offered for on the pages that restrict it (see restrictDownloadToFinal/
+    // ContractTable.jsx) — everywhere else (Home/Find Contract, Approval, Legal, My
+    // History, ...) it stays available on any status with a contract_no, which still
+    // falls through to the bare single-PDF download below.
+    if (contract.status === 'Drafted') {
+      // Not signed yet — a reviewer needs the full package (generated form + every
+      // attached document) in one go, not just the bare form.
+      await downloadDraftedContractZip(pdfData, contract.type);
+    } else if (contract.status === 'Signed' || contract.status === 'Terminated') {
+      // Finalized — just the generated form plus the actual signed contract PDF the
+      // requester uploaded.
+      await downloadSignedContractZip(pdfData, contract.type);
+    } else {
+      await downloadContractRequisitionFormPdf(pdfData, contract.type);
+    }
   };
 
   // Reset filters + page whenever the scope changes (i.e. switching tabs)
@@ -92,7 +114,10 @@ export default function ContractListPage({
 
   useEffect(() => setPage(1), [JSON.stringify(filters)]);
 
-  const { contracts, total, loading } = useContracts({
+  // Shared between the on-screen paginated fetch below and Export (see
+  // handleExportClick) — Export must reflect exactly what's currently filtered, just
+  // without page/pageSize ever entering into it.
+  const queryFilters = {
     ...filters,
     statuses: statusScope,
     hasContractNo: requireContractNo ? '1' : '',
@@ -102,12 +127,26 @@ export default function ContractListPage({
     // Legal > Waiting only: legal_check = 0 is what drops a row off this list once
     // Checked — deliberately separate from `status`, same condition the badge uses.
     legalCheck: legalMode ? '0' : '',
-    page,
-    pageSize: PAGE_SIZE,
-    refreshKey,
-  });
+  };
+
+  const { contracts, total, loading } = useContracts({ ...queryFilters, page, pageSize: PAGE_SIZE, refreshKey });
 
   const scopedStatusOptions = statusScope ? statusScope.filter(s => (meta.statuses || []).includes(s)) : meta.statuses;
+
+  // Home's Export button (see ContractFilters.jsx) — every row matching the current
+  // filters, ignoring pagination (GET /api/contracts/export has no LIMIT/OFFSET at
+  // all), downloaded as one .xlsx. Errors surface as a plain alert, same pattern
+  // ContractTable's own Download PDF action uses.
+  const handleExportClick = async () => {
+    setExporting(true);
+    try {
+      await downloadContractsXlsx(queryFilters);
+    } catch {
+      window.alert('Export ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <PageContainer>
@@ -127,6 +166,8 @@ export default function ContractListPage({
           showYear={showYear}
           showBrowse={showBrowse}
           showExport={showExport}
+          onExport={handleExportClick}
+          exporting={exporting}
           showSection={showSection}
           showStatus={showStatus}
           statusOptions={scopedStatusOptions}
@@ -153,6 +194,7 @@ export default function ContractListPage({
               neverDisableMore={neverDisableMore}
               checkJobPermission={checkJobPermission}
               hideChildType={hideChildType}
+              restrictDownloadToFinal={restrictDownloadToFinal}
               onLegalComment={contract => setLegalCommentId(contract.id)}
             />
             <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />

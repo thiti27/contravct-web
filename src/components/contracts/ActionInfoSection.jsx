@@ -210,16 +210,18 @@ export default function ActionInfoSection({ formik, remark, readOnly = false }) 
             </div>
 
             {HAS_EFFECTIVE_DATE[remark] && (
-              <DateField
-                label="Effective Date"
-                required
-                name="actionEffectiveDate"
-                value={values.actionEffectiveDate}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                error={err('actionEffectiveDate')}
-                disabled={readOnly}
-              />
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <DateField
+                  label="Effective Date"
+                  required
+                  name="actionEffectiveDate"
+                  value={values.actionEffectiveDate}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={err('actionEffectiveDate')}
+                  disabled={readOnly}
+                />
+              </div>
             )}
 
             {HAS_ATTACHMENTS[remark] && (

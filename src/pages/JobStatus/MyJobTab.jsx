@@ -12,9 +12,12 @@ export default function MyJobTab() {
       // The More icon is never disabled here — individual menu items still enforce
       // their own confidentiality/permission checks (see ContractTable.jsx).
       neverDisableMore
-      // Header-only: Edit modal always reads "Edit Contract", centered, instead of
-      // "Edit {Status} Contract" — see EditRequestModal.jsx's titleOverride.
-      editModalTitle="Edit Contract"
+      // Header-only: Edit modal always shows a single centered "Edit" badge, regardless
+      // of which row's status/remark was opened — see EditRequestModal.jsx's titleOverride.
+      editModalTitle="Edit"
+      // A row still in-flight (Saved, Waiting Approver *, Returned, ...) has nothing
+      // meaningful to download yet — only Drafted/Signed rows offer it.
+      restrictDownloadToFinal
     />
   );
 }

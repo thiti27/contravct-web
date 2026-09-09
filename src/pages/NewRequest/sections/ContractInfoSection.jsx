@@ -79,9 +79,12 @@ export default function ContractInfoSection({ formik, contractTypes, readOnly = 
 
           <TextField
             label="Other Please Specify"
+            required
             name="otherSpecify"
             value={values.otherSpecify}
             onChange={handleChange}
+            onBlur={handleBlur}
+            error={err('otherSpecify')}
             placeholder="อื่นๆ โปรดระบุ"
             disabled={readOnly}
           />

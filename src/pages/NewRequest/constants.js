@@ -5,7 +5,10 @@ export const DOCUMENT_TYPES = [
   { key: 'drawing', label: 'Drawing / Plan (แบบร่าง)' },
   { key: 'schedule', label: 'Schedule (แผนงาน)' },
   { key: 'companyCertificate', label: 'Company Certificate (หนังสือรับรองบริษัท)' },
-  { key: 'other', label: 'Other (โปรดระบุ เช่น ADF, เอกสารที่นำเสนอต่อ MCM)' },
+  {
+    key: 'other',
+    label: 'Other (โปรดระบุ เช่น  ADF, เอกสารที่นำเสนอต่อMCM, Investment Review Approval, หนังสือแจ้งปรับอัตราค่าบริการ  รายงานการประชุม เป็นต้น)',
+  },
 ];
 
 export const PAYMENT_INSTALLMENTS = [
@@ -26,6 +29,7 @@ export const REMARK_OPTIONS = [
   { value: 'claim', label: 'Claim Note' },
   { value: 'terminate', label: 'Terminate' },
   { value: 'cancel', label: 'Cancel Contract' },
+  { value: 'waived', label: 'Waived' },
 ];
 
 export const CURRENCY_OPTIONS = ['THB', 'USD', 'EUR', 'JPY', 'CNY'];

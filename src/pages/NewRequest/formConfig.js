@@ -152,6 +152,7 @@ export function validateRequest(values) {
 
   requireText('contractTypeId');
   requireText('contractPurpose');
+  requireText('otherSpecify');
   requireText('supplierName');
   requireText('requestDate');
   requireText('deliveryDate');

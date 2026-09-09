@@ -20,6 +20,9 @@ export default function ContractMakingTab() {
       // A Renew/Amend/Claim Note/Terminate child hides its own Type/Purpose here — the
       // master always shows its own — see ContractTable.jsx's hideChildType.
       hideChildType
+      // A row still in-flight (Saved, Waiting Approver *, Returned, ...) has nothing
+      // meaningful to download yet — only Drafted/Signed rows offer it.
+      restrictDownloadToFinal
     />
   );
 }
