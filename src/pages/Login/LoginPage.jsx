@@ -29,24 +29,29 @@ export default function LoginPage() {
     }
   };
 
+  // "Flat Brand-100" concept (picked from round 3, a background-only exploration —
+  // the blurred-blob backdrop from round 2 didn't land either): back to a plain flat
+  // backdrop, same brand-100 the rest of the app already uses, with the glass card
+  // (translucent white + backdrop-blur) from round 2 kept as-is — it reads fine on a
+  // flat color too, just without anything busy behind it to blur.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-sky-50 px-4">
-      <div className="w-full max-w-md rounded-xl2 border border-slate-200 bg-white p-8 shadow-card">
+    <div className="flex min-h-screen items-center justify-center bg-brand-100 px-4">
+      <div className="w-full max-w-md rounded-xl2 border border-white/60 bg-white/75 p-8 shadow-soft backdrop-blur-xl">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.png" alt="Contract Online System" className="mb-4 h-16 w-16 object-contain" />
-          <h1 className="text-xl font-bold text-navy">Contract Online System</h1>
-          <p className="mt-1 text-sm text-slate-500">เข้าสู่ระบบเพื่อจัดการสัญญาของคุณ</p>
+          <img src="/logo.png" alt="Contract Online System" className="mb-4 h-24 w-24 object-contain" />
+          <h1 className="text-2xl font-bold text-navy">Contract Online System</h1>
+          <p className="mt-1 text-base text-slate-500">เข้าสู่ระบบเพื่อจัดการสัญญาของคุณ</p>
         </div>
 
         {error && (
-          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-base text-rose-600">
             <AlertCircle size={17} /> {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
-            <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">USERNAME</span>
+            <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">USERNAME</span>
             <div className="relative">
               <User size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -55,13 +60,13 @@ export default function LoginPage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="username"
-                className="h-11 w-full rounded-2xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-white/70 pl-10 pr-3 text-base text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
               />
             </div>
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">PASSWORD</span>
+            <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">PASSWORD</span>
             <div className="relative">
               <Lock size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -70,7 +75,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="password"
-                className="h-11 w-full rounded-2xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-white/70 pl-10 pr-3 text-base text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
               />
             </div>
           </label>
@@ -78,7 +83,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
           >
             <LogIn size={17} /> {loading ? 'กำลังเข้าสู่ระบบ...' : 'LOGIN'}
           </button>

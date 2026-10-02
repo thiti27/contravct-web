@@ -3,6 +3,14 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      // Header-specific breakpoint: below this, the "Contract Procedure"/"Download
+      // Form" pill buttons collapse to icon-only (see Header.jsx) so the nav items
+      // (Home/Job Status/.../Settings) never get squeezed off-screen — measured
+      // against the real header content, not one of Tailwind's stock sm/md/lg/xl
+      // steps, which straddled the exact width where the squeeze started.
+      screens: {
+        hd: '1440px',
+      },
       fontFamily: {
         sans: ['Sarabun', 'Tahoma', 'sans-serif'],
       },
@@ -22,7 +30,12 @@ export default {
         navy: '#0f2447',
       },
       boxShadow: {
-        card: '0 2px 10px 0 rgb(15 36 71 / 0.06)',
+        // Was '0 2px 10px 0 rgb(15 36 71 / 0.06)' — 6% alpha read as barely-there next
+        // to a light page background, which is what actually made cards across the
+        // app (not just Home) "blend into" their backdrop instead of looking lifted
+        // off it. Boosted for real elevation; every card using shadow-card (there's
+        // no Home-only variant of a shared token) picks this up automatically.
+        card: '0 14px 30px -8px rgb(15 36 71 / 0.22)',
         soft: '0 10px 24px -6px rgb(13 65 225 / 0.28)',
       },
       borderRadius: {

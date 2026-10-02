@@ -5,7 +5,7 @@
 // brand blue or a status color, and no separate title text next to it.
 export default function EditBadge({ children = 'Edit' }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600">
+    <span className="inline-flex shrink-0 items-center rounded-full bg-amber-50 px-3 py-1 text-base font-semibold text-amber-600">
       {children}
     </span>
   );

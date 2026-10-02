@@ -15,11 +15,13 @@ export const APPROVAL_TABS = [
 export const LEGAL_TABS = [
   { key: 'waiting', label: 'Waiting Check', badgeKey: 'waitingCheck' },
   { key: 'history', label: 'Legal History' },
+  { key: 'scheduled-emails', label: 'Email Monitor' },
 ];
 
 export const SETTINGS_TABS = [
   { key: 'contract-types', label: 'Contract Type' },
   { key: 'role', label: 'Role' },
+  { key: 'activity-log', label: 'Activity Log' },
 ];
 
 // Top level primary navigation. `badgeKey` maps into the counts object returned by

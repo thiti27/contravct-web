@@ -8,6 +8,7 @@ import RequireRole from '../components/layout/RequireRole';
 import LoginPage from '../pages/Login/LoginPage';
 import UnauthorizedPage from '../pages/Unauthorized/UnauthorizedPage';
 import DownloadFormPage from '../pages/DownloadForm/DownloadFormPage';
+import ContractDocumentsPage from '../pages/ContractDocuments/ContractDocumentsPage';
 
 import HomeLayout from '../pages/Home/HomeLayout';
 import FindContractTab from '../pages/Home/FindContractTab';
@@ -27,16 +28,24 @@ import ApprovalMyHistoryTab from '../pages/Approval/MyHistoryTab';
 import LegalLayout from '../pages/Legal/LegalLayout';
 import WaitingCheckTab from '../pages/Legal/WaitingCheckTab';
 import LegalHistoryTab from '../pages/Legal/LegalHistoryTab';
+import ScheduledEmailMonitorTab from '../pages/Legal/ScheduledEmailMonitorTab';
 
 import SettingsLayout from '../pages/Settings/SettingsLayout';
 import RoleTab from '../pages/Settings/RoleTab';
 import ContractTypeTab from '../pages/Settings/ContractTypeTab';
+import ActivityLogTab from '../pages/Settings/ActivityLogTab';
 
 // All protected pages live under RequireAuth -> RootLayout (header + content).
 // Child `path` values below are relative segments of their PATHS.* counterpart,
 // e.g. 'my-job' here is the tail of PATHS.JOB_STATUS_MY_JOB.
 export const router = createBrowserRouter([
   { path: PATHS.LOGIN, element: <LoginPage /> },
+  // Public — outside RequireAuth on purpose (see ContractDocumentsPage.jsx and
+  // contract-server's contractDocuments.routes.js): a non-confidential contract's
+  // documents must be reachable by a logged-out visitor clicking the link straight
+  // from an email; the page itself redirects to Login only when the specific
+  // contract turns out to be HIGH CONFIDENTIAL.
+  { path: PATHS.CONTRACT_DOCUMENTS, element: <ContractDocumentsPage /> },
 
   {
     element: <RequireAuth />,
@@ -89,6 +98,7 @@ export const router = createBrowserRouter([
                   { index: true, element: <Navigate to="waiting" replace /> },
                   { path: 'waiting', element: <WaitingCheckTab /> },
                   { path: 'history', element: <LegalHistoryTab /> },
+                  { path: 'scheduled-emails', element: <ScheduledEmailMonitorTab /> },
                 ],
               },
             ],
@@ -104,6 +114,7 @@ export const router = createBrowserRouter([
                   { index: true, element: <Navigate to="contract-types" replace /> },
                   { path: 'contract-types', element: <ContractTypeTab /> },
                   { path: 'role', element: <RoleTab /> },
+                  { path: 'activity-log', element: <ActivityLogTab /> },
                 ],
               },
             ],

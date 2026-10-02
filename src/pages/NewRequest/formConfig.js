@@ -2,6 +2,10 @@ import { normalizeReferContractNo } from '../../lib/contractNo';
 import { normalizeThousands } from '../../lib/formatNumber';
 
 const REQUIRED_MESSAGE = 'This field is required.';
+const ENGLISH_ONLY_MESSAGE = 'Please input english company only';
+// Matches Thai script (U+0E00–U+0E7F) — supplierName goes into the generated PDF/legal
+// paperwork, which needs it in English regardless of what script the requester types in.
+const THAI_CHARS = /[฀-๿]/;
 
 export const EMPTY_DOCUMENT = { checked: false, files: [] };
 
@@ -23,6 +27,14 @@ export function buildInitialValues(user) {
     contractTypeId: '',
     contractPurpose: '',
     otherSpecify: '',
+    // Construction Risk Classification Checklist (see ConstructionRiskModal) — only
+    // meaningful when the selected contract type has checkConstructionRisk on;
+    // constructionRiskAnswers is the full per-row snapshot (see
+    // src/lib/constructionRiskChecklist.js), kept for a later Excel export rather than
+    // just the final score/level.
+    constructionRiskLevel: '',
+    constructionRiskScore: null,
+    constructionRiskAnswers: null,
     supplierName: '',
     requestDate: new Date().toISOString().slice(0, 10),
     deliveryDate: '',
@@ -83,6 +95,12 @@ export function buildInitialValuesFromMaster(masterData, user, remark) {
     contractTypeId: masterData.contractTypeId,
     contractPurpose: masterData.contractPurpose,
     otherSpecify: masterData.otherSpecify,
+    // Carried over read-only, same as contractPurpose above — Contract Information
+    // (including Purpose) isn't editable on a Renew/Amend/Claim Note/Terminate/Cancel
+    // request, so there's no popup to re-run here.
+    constructionRiskLevel: masterData.constructionRiskLevel || '',
+    constructionRiskScore: masterData.constructionRiskScore ?? null,
+    constructionRiskAnswers: masterData.constructionRiskAnswers || null,
     supplierName: (masterData.supplierName || '').toUpperCase(),
     requestDate: new Date().toISOString().slice(0, 10),
     deliveryDate: masterData.deliveryDate,
@@ -151,9 +169,14 @@ export function validateRequest(values) {
   };
 
   requireText('contractTypeId');
+  // Covers both ways Contract Purpose can end up filled for a construction-risk type
+  // (see ContractInfoSection.jsx): a plain dropdown pick of a non-risk purpose, or the
+  // Construction Risk Classification Checklist assigning one of the type's High/Low
+  // purposes — either satisfies this the same way a normal type's dropdown pick does.
   requireText('contractPurpose');
   requireText('otherSpecify');
   requireText('supplierName');
+  if (!errors.supplierName && THAI_CHARS.test(values.supplierName)) errors.supplierName = ENGLISH_ONLY_MESSAGE;
   requireText('requestDate');
   requireText('deliveryDate');
   requireText('location');
@@ -189,6 +212,7 @@ export function validateLinkedRequest(values) {
   requireText('contractTypeId');
   requireText('contractPurpose');
   requireText('supplierName');
+  if (!errors.supplierName && THAI_CHARS.test(values.supplierName)) errors.supplierName = ENGLISH_ONLY_MESSAGE;
   requireText('requestDate');
   requireText('deliveryDate');
   requireText('location');

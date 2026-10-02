@@ -6,14 +6,14 @@ export default function FieldShell({ label, required, error, hint, name, childre
     // whether it's a plain input or a react-select-based control underneath.
     <label className="block" data-field={name}>
       {label && (
-        <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">
+        <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">
           {label}
           {required && <span className="text-rose-500"> *</span>}
         </span>
       )}
       {children}
-      {hint && !error && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
-      {error && <p className="mt-1 text-xs font-medium text-rose-500">{error}</p>}
+      {hint && !error && <p className="mt-1 text-base text-slate-400">{hint}</p>}
+      {error && <p className="mt-1 text-base font-medium text-rose-500">{error}</p>}
     </label>
   );
 }

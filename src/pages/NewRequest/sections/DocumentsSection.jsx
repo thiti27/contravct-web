@@ -65,7 +65,7 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
         </span>
         <div>
           <div className="font-bold text-navy">Related Contract Document</div>
-          <div className="text-sm text-slate-500">เอกสารประกอบการพิจารณา — แนบไฟล์แล้วระบบจะติ๊กถูกให้อัตโนมัติ</div>
+          <div className="text-base text-slate-500">เอกสารประกอบการพิจารณา — แนบไฟล์แล้วระบบจะติ๊กถูกให้อัตโนมัติ</div>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
           const hasFiles = entry.files.length > 0;
           return (
             <div key={doc.key} className={`rounded-2xl border p-4 ${hasFiles ? 'border-brand-100 bg-brand-50/30' : 'border-slate-200 bg-slate-50/40'}`}>
-              <label className={`flex items-center gap-2 text-sm font-semibold text-slate-600 ${readOnly ? 'opacity-60' : ''}`}>
+              <label className={`flex items-center gap-2 text-base font-semibold text-slate-600 ${readOnly ? 'opacity-60' : ''}`}>
                 <input
                   type="checkbox"
                   checked={hasFiles}
@@ -109,9 +109,9 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
                     ) : (
                       <UploadCloud size={17} className="shrink-0 text-slate-400" />
                     )}
-                    <span className="flex-1 text-xs text-slate-500">{uploading ? 'กำลังอัปโหลด...' : 'แนบไฟล์ได้หลายไฟล์'}</span>
+                    <span className="flex-1 text-base text-slate-500">{uploading ? 'กำลังอัปโหลด...' : 'แนบไฟล์ได้หลายไฟล์'}</span>
                     <label
-                      className={`shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ${
+                      className={`shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-base font-semibold text-slate-600 ${
                         uploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-100'
                       }`}
                     >
@@ -130,12 +130,12 @@ export default function DocumentsSection({ formik, readOnly = false, isOwner = t
                   </div>
                 )}
 
-                {uploadErrors[doc.key] && <p className="text-xs font-medium text-rose-500">{uploadErrors[doc.key]}</p>}
+                {uploadErrors[doc.key] && <p className="text-base font-medium text-rose-500">{uploadErrors[doc.key]}</p>}
 
                 {hasFiles && (
                   <ul className="space-y-1.5">
                     {entry.files.map(file => (
-                      <li key={file.id} className="flex items-center gap-2 text-sm">
+                      <li key={file.id} className="flex items-center gap-2 text-base">
                         {restrictedFiles ? (
                           // strictRestriction: real filename never reaches the DOM at
                           // all, not just visually hidden — "xxxxx" is the only text

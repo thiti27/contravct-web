@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// TEMP: pointed at the local backend to test Original At (needs the original_at_legal
+// migration + /original-at route that only exist on this machine so far) — swap back
+// once that's deployed to the remote server.
 // export const SERVER_BASE = 'http://localhost:1312';
 export const SERVER_BASE = 'http://159.228.251.234:1312';
 export const API_BASE = `${SERVER_BASE}/api`;
@@ -36,12 +39,22 @@ apiClient.interceptors.request.use(config => {
 // dead end. A wrong-password 401 from /login itself also passes through here, but the
 // pathname check below skips the redirect when already on /login — login()'s own
 // catch block (see below) still turns that rejection into the usual error message.
+//
+// Also skipped on /contract-documents/* — the one other public route, reachable while
+// logged out (a "Download Contract Documents" link opened straight from an email).
+// That page's own request never 401s itself (contractDocumentsController.js never
+// rejects), but a logged-out visitor still has other authenticated background requests
+// firing from providers that wrap the whole app (e.g. useMeta.js's own badge-count
+// fetch) — without this, an unrelated 401 from one of those would hijack this
+// page to /login even though the actual page being viewed never needed a session.
+const PUBLIC_PATH_PREFIXES = ['/login', '/contract-documents/'];
+
 apiClient.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
-      if (!window.location.pathname.startsWith('/login')) {
+      if (!PUBLIC_PATH_PREFIXES.some(prefix => window.location.pathname.startsWith(prefix))) {
         window.location.assign('/login');
       }
     }
@@ -149,6 +162,21 @@ export function deleteRole(id, payload) {
 }
 
 // ---------------------------------------------------------------------------
+// Settings > Activity Log (/settings/activity-log) — read-only audit trail of login,
+// request, approval/legal, upload and Settings-change events. Admin-only, same as
+// Role Management above; writes all happen server-side (contract-server's
+// app/utils/activityLog.js), nothing here ever POSTs to it.
+// ---------------------------------------------------------------------------
+export function fetchActivityLogs(filters = {}) {
+  const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+  return apiClient.get('/admin/activity-logs', { params }).then(res => res.data);
+}
+
+export function fetchActivityLogActions() {
+  return apiClient.get('/admin/activity-logs/actions').then(res => res.data);
+}
+
+// ---------------------------------------------------------------------------
 // Global documents: Contract Procedure, User Manual (both Home page), and Check
 // Sheet (every row on Download Form). Exactly one of each, managed from
 // Settings > Contract Type.
@@ -167,6 +195,16 @@ export function submitContractRequest(payload) {
 
 export function fetchContractRequest(id) {
   return apiClient.get(`/requests/${id}`).then(res => res.data);
+}
+
+// Contract Documents page (public — see ContractDocumentsPage.jsx) — tells the page
+// whether this contract_no exists, and whether the current visitor (logged in or not)
+// is allowed to download it, WITHOUT itself returning 401/403: a logged-out visitor on
+// a non-confidential contract gets authorized:true same as anyone else; a HIGH
+// CONFIDENTIAL one comes back with requiresLogin or authorized:false for the page to
+// render the right state (download button / login redirect / Access Denied).
+export function fetchContractDocumentsInfo(contractNo) {
+  return apiClient.get(`/contract-documents/${encodeURIComponent(contractNo)}`).then(res => res.data);
 }
 
 export function updateContractRequest(id, payload) {
@@ -240,6 +278,12 @@ export function cancelLegalRequest(id, payload) {
 // ---------------------------------------------------------------------------
 export function uploadSignedContract(id, payload) {
   return apiClient.post(`/contract-request/${id}/upload-signed`, payload).then(res => res.data);
+}
+
+// Home's Original At column toggle (More > "Original At Legal" / "Original At Owner",
+// see ContractTable.jsx) — offered while status = 'Signed' or 'Terminated'.
+export function setOriginalAtLegal(id, payload) {
+  return apiClient.post(`/contract-request/${id}/original-at`, payload).then(res => res.data);
 }
 
 export function uploadFiles(files) {
@@ -319,6 +363,38 @@ export function fetchUploadBlobFromPath(path) {
   const match = /\/uploads\/(\d+)\/download/.exec(path || '');
   if (!match) return Promise.reject(new Error('Invalid file path.'));
   return fetchUploadBlob(match[1]);
+}
+
+// ---------------------------------------------------------------------------
+// Legal > Email Monitor — read-only preview of the automated Drafted Tracking /
+// Expiration Reminder emails' grouping and dates, computed live from current data
+// (nothing here has actually sent anything yet).
+// ---------------------------------------------------------------------------
+export function fetchDraftedTrackingPreview() {
+  return apiClient.get('/scheduled-emails/drafted-tracking-preview').then(res => res.data);
+}
+
+export function fetchExpirationReminderPreview() {
+  return apiClient.get('/scheduled-emails/expiration-reminder-preview').then(res => res.data);
+}
+
+// Manual test-send for one contract's Expiration Reminder — a real send (not a
+// dry-run), for verifying recipients/content against real data before trusting the
+// cron. Logs to scheduled_email_log same as the automated job, so it won't double-send.
+export function sendExpirationReminderNow(id) {
+  return apiClient.post(`/scheduled-emails/expiration-reminder/${id}/send`).then(res => res.data);
+}
+
+// Manual test-send for one section's Drafted Tracking email, for a given round
+// ('round1' | 'round2' | 'round3') — same "real send, logs like the cron" reasoning.
+export function sendDraftedTrackingNow(section, round) {
+  return apiClient.post(`/scheduled-emails/drafted-tracking/${encodeURIComponent(section)}/${round}/send`).then(res => res.data);
+}
+
+// Same as sendDraftedTrackingNow above, for the FINAL REMINDER follow-up (fires on
+// the round's own deadline date, 15-Feb/15-Jun/15-Oct).
+export function sendDraftedTrackingFinalReminderNow(section, round) {
+  return apiClient.post(`/scheduled-emails/drafted-tracking-final/${encodeURIComponent(section)}/${round}/send`).then(res => res.data);
 }
 
 export async function login(username, password) {

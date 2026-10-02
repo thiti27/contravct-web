@@ -10,13 +10,13 @@ export default function ConfirmModal({ open, title = 'Confirm to save', message,
         <HelpCircle size={30} />
       </div>
       <h2 className="text-lg font-bold text-navy">{title}</h2>
-      {message && <p className="mt-2 text-sm text-slate-500">{message}</p>}
+      {message && <p className="mt-2 text-base text-slate-500">{message}</p>}
       <div className="mt-6 flex justify-center gap-3">
         <button
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className="h-11 flex-1 rounded-2xl bg-brand-600 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+          className="h-11 flex-1 rounded-2xl bg-brand-600 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
         >
           {busy ? 'Saving…' : 'Yes'}
         </button>
@@ -24,7 +24,7 @@ export default function ConfirmModal({ open, title = 'Confirm to save', message,
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="h-11 flex-1 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          className="h-11 flex-1 rounded-2xl border border-slate-200 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
         >
           No
         </button>

@@ -18,6 +18,9 @@ export default function MyJobTab() {
       // A row still in-flight (Saved, Waiting Approver *, Returned, ...) has nothing
       // meaningful to download yet — only Drafted/Signed rows offer it.
       restrictDownloadToFinal
+      // My Job is scoped to the current user's own contracts — a Legal Comment action
+      // here doesn't make sense even for a user who's also Legal.
+      allowLegalComment={false}
     />
   );
 }

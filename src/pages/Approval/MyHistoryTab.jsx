@@ -49,9 +49,9 @@ export default function MyHistoryTab() {
 
   return (
     <PageContainer>
-      <div className="mb-5">
+      <div className="mb-3   ml-3">
         <h1 className="text-2xl font-bold text-navy">MY HISTORY</h1>
-        <p className="mt-1 text-sm text-slate-500">ประวัติการอนุมัติ (Approve, Return, Reject) ของคุณ</p>
+        <p className="mt-1 text-base  ">ประวัติการอนุมัติ (Approve, Return, Reject) ของคุณ</p>
       </div>
 
       <div className="flex flex-col gap-4">

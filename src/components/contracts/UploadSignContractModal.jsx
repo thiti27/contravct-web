@@ -7,6 +7,7 @@ import ResultModal from '../ui/ResultModal';
 import DateField from '../ui/DateField';
 import { useAuth } from '../../context/AuthContext';
 import { uploadFiles, uploadSignedContract } from '../../lib/api';
+import { scrollToField } from '../../lib/formScroll';
 
 // Thai-primary copy in this modal specifically (unlike the rest of the app's
 // English-primary convention) — matches the design mockup this was redesigned from
@@ -59,6 +60,10 @@ const T = {
   errRenewalChoice: 'Select either Auto Renewal or No Auto Renewal.',
 };
 
+// Screen order top to bottom — handleSaveClick walks this to find the first field to
+// scroll to, same "first" a person reading down the form would hit.
+const FIELD_ORDER = ['file', 'contractStartDate', 'contractEndDate', 'autoRenewalChoice', 'autoRenewalYears', 'reminderBeforeExpiryDays'];
+
 const REMINDER_OPTIONS = [
   { value: 15, label: '15 วัน' },
   { value: 30, label: '30 วัน' },
@@ -71,7 +76,7 @@ function StepBadge({ children, small }) {
   return (
     <span
       className={`grid shrink-0 place-items-center rounded-full bg-brand-600 font-bold text-white ${
-        small ? 'h-6 w-6 text-[11px]' : 'h-8 w-8 text-sm'
+        small ? 'h-6 w-6 text-base' : 'h-8 w-8 text-base'
       }`}
     >
       {children}
@@ -202,11 +207,22 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
     }
 
     setErrors(next);
-    return Object.keys(next).length === 0;
+    return next;
   };
 
+  // validate() returns the freshly-computed errors object directly (not just a
+  // boolean) so this can find the first invalid field and scroll to it without
+  // waiting on the next render's now-stale `errors` state — same reasoning
+  // validateAndScrollOnError (New Request form) has for reading formik's own
+  // validateForm() result directly instead of its state.
   const handleSaveClick = () => {
-    if (validate()) setConfirmOpen(true);
+    const next = validate();
+    if (Object.keys(next).length === 0) {
+      setConfirmOpen(true);
+      return;
+    }
+    const firstInvalidField = FIELD_ORDER.find(key => next[key]);
+    if (firstInvalidField) scrollToField(firstInvalidField);
   };
 
   const handleConfirmYes = async () => {
@@ -250,7 +266,7 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
 
   const footer = (
     <div className="flex w-full flex-wrap items-center justify-end gap-3">
-      {/* <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-400">
+      {/* <div className="flex min-w-0 items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-base text-slate-400">
         <Info size={14} className="shrink-0" />
         <span>{T.footerNote}</span>
       </div> */}
@@ -259,7 +275,7 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
           type="button"
           onClick={handleSaveClick}
           disabled={saving}
-          className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+          className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
         >
           <Save size={16} /> {T.save}
         </button>
@@ -267,7 +283,7 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
           type="button"
           onClick={onClose}
           disabled={saving}
-          className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+          className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
         >
           <X size={16} /> {T.cancel}
         </button>
@@ -289,14 +305,14 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
           {/* Step 1 — Signed contract file, required by the backend. Not part of the
               supplied mockup (which started at what's now Step 2), given its own
               numbered step here so the whole flow reads as one continuous sequence. */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <div data-field="file" className="rounded-2xl border border-slate-200 bg-white p-5">
             <div className="mb-3 flex items-center gap-3">
               <StepBadge>1</StepBadge>
               <h3 className="text-base font-bold text-navy">{T.fileHint}</h3>
             </div>
             <div className="w-1/2 min-w-0">
               {file ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base">
                   <FileText size={17} className="shrink-0 text-brand-600" />
                   <a href={fileUrl} download={file.name} className="flex-1 truncate text-blue-600 underline hover:text-blue-700">
                     {file.name}
@@ -312,14 +328,14 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
               ) : (
                 <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-3">
                   <UploadCloud size={18} className="shrink-0 text-slate-400" />
-                  <span className="flex-1 text-sm text-slate-500">{T.chooseFile}</span>
-                  <span className="shrink-0 rounded-2xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-soft hover:bg-brand-700">
+                  <span className="flex-1 text-base text-slate-500">{T.chooseFile}</span>
+                  <span className="shrink-0 rounded-2xl bg-brand-600 px-4 py-2 text-base font-semibold text-white shadow-soft hover:bg-brand-700">
                     {T.browse}
                   </span>
                   <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFileChange} />
                 </label>
               )}
-              {(fileError || errors.file) && <p className="mt-1 text-xs font-medium text-rose-500">{fileError || errors.file}</p>}
+              {(fileError || errors.file) && <p className="mt-1 text-base font-medium text-rose-500">{fileError || errors.file}</p>}
             </div>
           </div>
 
@@ -335,6 +351,7 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
             <div className="flex items-center gap-2">
               <div className="w-1/2 min-w-0">
                 <DateField
+                  name="contractStartDate"
                   required
                   value={form.contractStartDate}
                   onChange={e => setField('contractStartDate', e.target.value)}
@@ -377,12 +394,13 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-navy">{T.hasExpiryTitle}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">{T.hasExpiryDesc}</p>
+                    <p className="mt-0.5 text-base text-slate-400">{T.hasExpiryDesc}</p>
                   </div>
                 </div>
                 {hasExpiry && (
                   <div className="mt-4" onClick={e => e.stopPropagation()}>
                     <DateField
+                      name="contractEndDate"
                       label={T.endDateLabel}
                       required
                       value={form.contractEndDate}
@@ -412,13 +430,13 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-navy">{T.noExpiryTitle}</p>
-                    <p className="mt-0.5 text-xs text-slate-400">{T.noExpiryDesc}</p>
+                    <p className="mt-0.5 text-base text-slate-400">{T.noExpiryDesc}</p>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-col items-center gap-3">
                   <InfinityIcon size={30} className="text-brand-400" />
                   {!hasExpiry && (
-                    <div className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                    <div className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-base text-emerald-700">
                       <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
                       <span>{T.noExpiryConfirm}</span>
                     </div>
@@ -432,14 +450,14 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                 {/* Step 2.1 — Renewal, only relevant while the contract has an end date */}
                 <div className="mb-2 flex items-center gap-2">
                   <StepBadge small>3.1</StepBadge>
-                  <h4 className="text-sm font-bold text-navy">
+                  <h4 className="text-base font-bold text-navy">
                     {T.step21Title} <span className="font-normal text-slate-400">{T.step21Subtitle}</span>
                   </h4>
                 </div>
 
-                <div className="ml-8 space-y-3">
-                  <div>
-                    <label className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
+                <div data-field="autoRenewalChoice" className="ml-8 space-y-3">
+                  <div data-field="autoRenewalYears">
+                    <label className="flex flex-wrap items-center gap-2 text-base text-slate-700">
                       <input
                         type="radio"
                         name="autoRenewalChoice"
@@ -453,19 +471,19 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                         min="1"
                         value={form.autoRenewalYears}
                         onChange={e => setField('autoRenewalYears', e.target.value)}
-                        className={`h-9 w-16 shrink-0 rounded-xl border px-2 text-center text-sm outline-none transition-colors focus:bg-white focus:ring-4 ${
+                        className={`h-9 w-16 shrink-0 rounded-xl border px-2 text-center text-base outline-none transition-colors focus:bg-white focus:ring-4 ${
                           errors.autoRenewalYears
                             ? 'border-rose-300 bg-rose-50/40 focus:border-rose-400 focus:ring-rose-500/10'
                             : 'border-slate-200 bg-slate-50 focus:border-brand-500 focus:ring-brand-500/10'
                         }`}
                       />
                       <span className="shrink-0 text-slate-500">{T.autoRenewalUnit}</span>
-                      <span className="text-xs text-slate-400">{T.autoRenewalExample}</span>
+                      <span className="text-base text-slate-400">{T.autoRenewalExample}</span>
                     </label>
-                    {errors.autoRenewalYears && <p className="ml-6 mt-1 text-xs font-medium text-rose-500">{errors.autoRenewalYears}</p>}
+                    {errors.autoRenewalYears && <p className="ml-6 mt-1 text-base font-medium text-rose-500">{errors.autoRenewalYears}</p>}
                   </div>
 
-                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <label className="flex items-center gap-2 text-base text-slate-700">
                     <input
                       type="radio"
                       name="autoRenewalChoice"
@@ -475,16 +493,16 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                     />
                     <span>{T.noAutoRenewal}</span>
                   </label>
-                  {errors.autoRenewalChoice && <p className="text-xs font-medium text-rose-500">{errors.autoRenewalChoice}</p>}
+                  {errors.autoRenewalChoice && <p className="text-base font-medium text-rose-500">{errors.autoRenewalChoice}</p>}
 
                   <div className="pt-1">
-                    <label className="mb-2 block text-xs font-semibold tracking-wide text-violet-600">{T.renewalConditionLabel}</label>
+                    <label className="mb-2 block text-base font-semibold tracking-wide text-violet-600">{T.renewalConditionLabel}</label>
                     <textarea
                       rows={2}
                       value={form.renewalCondition}
                       onChange={e => setField('renewalCondition', e.target.value)}
                       placeholder={T.renewalConditionPlaceholder}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition-colors focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-700 outline-none transition-colors focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10"
                     />
                   </div>
                 </div>
@@ -492,20 +510,20 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                 {/* Step 2.2 — Reminder before expiry: single-select, styled as checkboxes
                     per the supplied design (still one value under the hood, same as the
                     radio group it replaces — see the DB column comment). */}
-                <div className="mt-5">
+                <div data-field="reminderBeforeExpiryDays" className="mt-5">
                   <div className="mb-1 flex items-center gap-2">
                     <StepBadge small>3.2</StepBadge>
-                    <h4 className="text-sm font-bold text-navy">
+                    <h4 className="text-base font-bold text-navy">
                       {T.step22Title}
                       <span className="text-rose-500"> *</span>
                     </h4>
                   </div>
-                  <p className="ml-8 mb-3 text-xs text-slate-400">{T.step22Subtitle}</p>
+                  <p className="ml-8 mb-3 text-base text-slate-400">{T.step22Subtitle}</p>
                   <div className="ml-8 flex flex-wrap gap-x-6 gap-y-3">
                     {REMINDER_OPTIONS.map(opt => {
                       const checked = Number(form.reminderBeforeExpiryDays) === opt.value;
                       return (
-                        <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                        <label key={opt.value} className="flex cursor-pointer items-center gap-2 text-base text-slate-700">
                           <span
                             onClick={() => setField('reminderBeforeExpiryDays', opt.value)}
                             className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
@@ -520,7 +538,7 @@ export default function UploadSignContractModal({ contract, onClose, onSaved }) 
                     })}
                   </div>
                   {errors.reminderBeforeExpiryDays && (
-                    <p className="ml-8 mt-2 text-xs font-medium text-rose-500">{errors.reminderBeforeExpiryDays}</p>
+                    <p className="ml-8 mt-2 text-base font-medium text-rose-500">{errors.reminderBeforeExpiryDays}</p>
                   )}
                 </div>
               </div>

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Pencil, Check, X, ChevronDown, ChevronRight, UploadCloud, FileDown, Loader2, Trash2 } from 'lucide-react';
+import Select from 'react-select';
+import { Plus, Pencil, Check, X, FileText, UploadCloud, FileDown, Loader2, Trash2 } from 'lucide-react';
 import PageContainer from '../../components/layout/PageContainer';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import ResultModal from '../../components/ui/ResultModal';
 import { useAuth } from '../../context/AuthContext';
 import { formatDateTime } from '../../lib/formatDate';
+import { formatThousands, parseThousands } from '../../lib/formatNumber';
 import {
   fetchAdminContractTypes,
   createContractType,
@@ -47,15 +49,16 @@ function useConfirmAction() {
 }
 
 function ActiveToggle({ active, onToggle }) {
+  const Icon = active ? Check : X;
   return (
     <button
       type="button"
       onClick={onToggle}
-      className={`h-9 shrink-0 rounded-lg px-3 text-xs font-semibold transition-colors ${
+      className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-base font-semibold transition-colors ${
         active ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
       }`}
     >
-      {active ? 'Active' : 'Inactive'}
+      <Icon size={13} strokeWidth={3} /> {active ? 'Active' : 'Inactive'}
     </button>
   );
 }
@@ -145,7 +148,7 @@ function GlobalDocumentButton({ docKey, label, doc, onChange, onResult }) {
         onClick={handleButtonClick}
         disabled={busy}
         title={tooltip}
-        className={`flex h-11 w-56 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-card ${
+        className={`flex h-11 w-56 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-600 shadow-card ${
           busy ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-50'
         }`}
       >
@@ -220,27 +223,28 @@ function FormItemLangRow({ purpose, lang, label, onChange }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-      <span className="w-10 shrink-0 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</span>
+    <div className={`rounded-xl border p-3 ${path ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-base font-bold uppercase tracking-wide text-slate-500">{label}</span>
+        {path ? (
+          <button
+            type="button"
+            onClick={() => downloadUploadFileFromPath(path, `${purpose.purposeText} (${label})`)}
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-base font-semibold text-brand-600 hover:underline"
+          >
+            <FileDown size={14} className="shrink-0" /> <span className="truncate">Download current file</span>
+          </button>
+        ) : (
+          <span className="flex-1 text-base text-slate-400">No file attached</span>
+        )}
+      </div>
 
-      {path ? (
-        <button
-          type="button"
-          onClick={() => downloadUploadFileFromPath(path, `${purpose.purposeText} (${label})`)}
-          className="flex flex-1 items-center gap-1.5 text-left text-sm font-semibold text-brand-600 hover:underline"
-        >
-          <FileDown size={14} /> Download current file
-        </button>
-      ) : (
-        <span className="flex-1 text-sm text-slate-400">No file attached</span>
-      )}
-
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="mt-2 flex items-center gap-2">
         <button
           type="button"
           onClick={handlePickClick}
           disabled={busy}
-          className={`flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 ${
+          className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 text-base font-semibold text-slate-600 ${
             busy ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-slate-100'
           }`}
         >
@@ -253,14 +257,14 @@ function FormItemLangRow({ purpose, lang, label, onChange }) {
             type="button"
             onClick={() => setConfirmDelete(true)}
             disabled={busy}
-            className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50"
           >
             <Trash2 size={14} />
           </button>
         )}
       </div>
 
-      {error && <span className="w-full text-xs font-medium text-rose-500">{error}</span>}
+      {error && <span className="mt-1.5 block text-base font-medium text-rose-500">{error}</span>}
 
       <ConfirmModal
         open={confirmReplace}
@@ -303,14 +307,14 @@ function PurposeRow({ purpose, index, onChange }) {
           <input
             value={form.purposeText}
             onChange={e => setForm(f => ({ ...f, purposeText: e.target.value }))}
-            className="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500"
+            className="h-9 w-full rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-brand-500"
             placeholder="Purpose text"
             autoFocus
           />
           <textarea
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base outline-none focus:border-brand-500"
             placeholder="Description (optional)"
             rows={3}
           />
@@ -319,14 +323,14 @@ function PurposeRow({ purpose, index, onChange }) {
               type="button"
               onClick={() => saveConfirm.ask(doSave, 'Purpose updated successfully.')}
               disabled={!form.purposeText.trim()}
-              className="flex h-8 items-center gap-1 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
+              className="flex h-8 items-center gap-1 rounded-lg bg-brand-600 px-3 text-base font-semibold text-white disabled:opacity-50"
             >
               <Check size={13} /> Save
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600"
+              className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-3 text-base font-semibold text-slate-600"
             >
               <X size={13} /> Cancel
             </button>
@@ -334,15 +338,15 @@ function PurposeRow({ purpose, index, onChange }) {
         </div>
       ) : (
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">#{index + 1}</span>
-              <span className="font-semibold text-navy">{purpose.purposeText}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-base font-bold text-slate-400">#{index + 1}</span>
+              <span className="break-words font-semibold text-navy">{purpose.purposeText}</span>
               {!purpose.active && (
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">Inactive</span>
+                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-base font-bold uppercase text-slate-500">Inactive</span>
               )}
             </div>
-            {purpose.description && <div className="mt-0.5 whitespace-pre-line text-sm text-slate-500">{purpose.description}</div>}
+            {purpose.description && <div className="mt-0.5 whitespace-pre-line break-words text-base text-slate-500">{purpose.description}</div>}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <button
@@ -351,9 +355,9 @@ function PurposeRow({ purpose, index, onChange }) {
                 setForm({ purposeText: purpose.purposeText, description: purpose.description || '' });
                 setEditing(true);
               }}
-              className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-brand-50 px-2.5 text-base font-semibold text-brand-600 hover:bg-brand-100"
             >
-              <Pencil size={14} />
+              <Pencil size={13} /> Edit
             </button>
             <ActiveToggle
               active={purpose.active}
@@ -365,7 +369,7 @@ function PurposeRow({ purpose, index, onChange }) {
         </div>
       )}
 
-      <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+      <div className="mt-3 grid grid-cols-1 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-2">
         <FormItemLangRow purpose={purpose} lang="eng" label="ENG" onChange={onChange} />
         <FormItemLangRow purpose={purpose} lang="tha" label="THA" onChange={onChange} />
       </div>
@@ -412,14 +416,14 @@ function NewPurposeForm({ typeId, onDone, onChange }) {
       <input
         value={form.purposeText}
         onChange={e => setForm(f => ({ ...f, purposeText: e.target.value }))}
-        className="h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-500"
+        className="h-9 w-full rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-brand-500"
         placeholder="Purpose text"
         autoFocus
       />
       <textarea
         value={form.description}
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base outline-none focus:border-brand-500"
         placeholder="Description (optional)"
         rows={3}
       />
@@ -428,11 +432,11 @@ function NewPurposeForm({ typeId, onDone, onChange }) {
           type="button"
           onClick={add}
           disabled={saving || !form.purposeText.trim()}
-          className="flex h-8 items-center gap-1 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
+          className="flex h-8 items-center gap-1 rounded-lg bg-brand-600 px-3 text-base font-semibold text-white disabled:opacity-50"
         >
           <Check size={13} /> Add
         </button>
-        <button type="button" onClick={onDone} className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600">
+        <button type="button" onClick={onDone} className="flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-3 text-base font-semibold text-slate-600">
           <X size={13} /> Cancel
         </button>
       </div>
@@ -440,16 +444,91 @@ function NewPurposeForm({ typeId, onDone, onChange }) {
   );
 }
 
-function TypeCard({ type, index, onChange }) {
-  const [expanded, setExpanded] = useState(false);
+// Left column (see ContractTypeTab below) — plain selectable row, same visual
+// language as DownloadFormPage.jsx's own type list (border-l-4 + bg-brand-50/60 for
+// the selected one) so this page matches that one's layout exactly. No inline
+// edit/toggle controls here on purpose — those live in TypeDetailPanel's header
+// instead, where there's room for them; this list stays a clean selector.
+function TypeListItem({ type, active, onSelect }) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`block w-full border-l-4 px-5 py-4 text-left transition-colors ${
+          active ? 'border-brand-600 bg-brand-50/60' : 'border-transparent hover:bg-slate-50'
+        }`}
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`text-base font-semibold ${active ? 'text-brand-700' : 'text-navy'}`}>{type.name}</span>
+          {!type.active && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-base font-bold uppercase text-slate-500">Inactive</span>}
+        </div>
+        {type.description && <div className="mt-1 truncate text-base text-slate-400">{type.description}</div>}
+      </button>
+    </li>
+  );
+}
+
+// Right column — the selected type's full detail: header (name/description, Edit +
+// Active/Inactive toggle) same as DownloadFormPage.jsx's own header row but with
+// mutation controls added, then its purposes (each still a full PurposeRow with its
+// ENG/THA file rows, unchanged) plus Add Purpose. Replaces TypeCard's old expand/
+// collapse accordion — the left list's selection IS the expand mechanism now, so this
+// always renders full detail for whichever type is currently selected.
+function TypeDetailPanel({ type, onChange }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: type.name, description: type.description || '', allowCustomPurpose: type.allowCustomPurpose });
+  const [form, setForm] = useState({
+    name: type.name,
+    description: type.description || '',
+    allowCustomPurpose: type.allowCustomPurpose,
+    checkConstructionRisk: !!type.checkConstructionRisk,
+    constructionRiskExemptAbove: formatThousands(type.constructionRiskExemptAbove ?? ''),
+  });
+  // Construction Risk Classification grouping — which single purpose of this type
+  // counts as High vs Low risk (see risk_level on contract_type_purposes). Kept here
+  // rather than on each PurposeRow since both pickers need to see each other's
+  // selection to enforce "a purpose can only be picked once" (see the options
+  // filtering below) — that cross-checking is easiest done from one shared parent.
+  const [highId, setHighId] = useState(type.purposes.find(p => p.riskLevel === 'high')?.id ?? null);
+  const [lowId, setLowId] = useState(type.purposes.find(p => p.riskLevel === 'low')?.id ?? null);
   const [showNewPurpose, setShowNewPurpose] = useState(false);
   const saveConfirm = useConfirmAction();
   const toggleConfirm = useConfirmAction();
 
+  // Switching the selected type in the left list while mid-edit (or mid Add Purpose)
+  // on the previous one shouldn't carry that stale form state into the newly
+  // selected type's panel.
+  useEffect(() => {
+    setForm({
+      name: type.name,
+      description: type.description || '',
+      allowCustomPurpose: type.allowCustomPurpose,
+      checkConstructionRisk: !!type.checkConstructionRisk,
+      constructionRiskExemptAbove: formatThousands(type.constructionRiskExemptAbove ?? ''),
+    });
+    setHighId(type.purposes.find(p => p.riskLevel === 'high')?.id ?? null);
+    setLowId(type.purposes.find(p => p.riskLevel === 'low')?.id ?? null);
+    setEditing(false);
+    setShowNewPurpose(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type.id]);
+
+  const purposeOptions = type.purposes.map(p => ({ value: p.id, label: p.purposeText }));
+
   const doSave = async () => {
-    await updateContractType(type.id, form);
+    await updateContractType(type.id, { ...form, constructionRiskExemptAbove: parseThousands(form.constructionRiskExemptAbove) });
+
+    // Only purposes whose classification actually changed get an update call —
+    // most saves touch none of them (the High/Low pickers are usually untouched
+    // while editing name/description).
+    const riskUpdates = type.purposes
+      .map(p => {
+        const nextLevel = p.id === highId ? 'high' : p.id === lowId ? 'low' : null;
+        return nextLevel !== (p.riskLevel || null) ? updatePurpose(p.id, { riskLevel: nextLevel }) : null;
+      })
+      .filter(Boolean);
+    await Promise.all(riskUpdates);
+
     setEditing(false);
     onChange();
   };
@@ -460,99 +539,148 @@ function TypeCard({ type, index, onChange }) {
   };
 
   return (
-    <div className={`overflow-hidden rounded-xl2 border shadow-card ${type.active ? 'border-slate-200 bg-white' : 'border-slate-200 bg-slate-50/70'}`}>
+    <section className="overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card">
       {editing ? (
-        <div className="space-y-3 p-5">
+        <div className="space-y-3 border-b border-slate-100 bg-slate-50 p-6">
           <input
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand-500"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-base outline-none focus:border-brand-500"
             placeholder="Name"
             autoFocus
           />
           <textarea
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-base outline-none focus:border-brand-500"
             placeholder="Description (optional)"
             rows={3}
           />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-base text-slate-600">
             <input
               type="checkbox"
               checked={form.allowCustomPurpose}
               onChange={e => setForm(f => ({ ...f, allowCustomPurpose: e.target.checked }))}
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            Allow custom purpose (free text instead of a dropdown on the New Request form)
+            อนุญาตให้กรอกวัตถุประสงค์เอง (พิมพ์ข้อความอิสระแทนการเลือกจากดรอปดาวน์ในหน้า New Request)
           </label>
+          <label className="flex cursor-pointer items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              checked={form.checkConstructionRisk}
+              onChange={e => setForm(f => ({ ...f, checkConstructionRisk: e.target.checked }))}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-slate-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span className="text-base text-slate-600">สัญญานี้ต้องประเมิน Construction Risk Classification Checklist</span>
+          </label>
+
+          {form.checkConstructionRisk && (
+            <label className="block pl-[1.625rem]">
+              <span className="mb-1.5 block text-base text-slate-500">
+                ไม่ต้องทำแบบประเมิน ถ้ามูลค่าสัญญา (Total Net Price) มากกว่า (บาท) — เว้นว่างไว้ถ้าต้องประเมินทุกมูลค่า
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={form.constructionRiskExemptAbove}
+                onChange={e => setForm(f => ({ ...f, constructionRiskExemptAbove: formatThousands(e.target.value) }))}
+                className="h-10 w-full max-w-xs rounded-xl border border-slate-200 px-3 text-base outline-none focus:border-brand-500"
+                placeholder="เช่น 5,000,000"
+              />
+            </label>
+          )}
+
+          {form.checkConstructionRisk && (
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-base font-bold uppercase tracking-wide text-amber-700">High</span>
+                <Select
+                  classNamePrefix="rs"
+                  isClearable
+                  placeholder="เลือก purpose..."
+                  options={purposeOptions.filter(o => o.value !== lowId)}
+                  value={purposeOptions.find(o => o.value === highId) || null}
+                  onChange={option => setHighId(option?.value ?? null)}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-base font-bold uppercase tracking-wide text-emerald-700">Low</span>
+                <Select
+                  classNamePrefix="rs"
+                  isClearable
+                  placeholder="เลือก purpose..."
+                  options={purposeOptions.filter(o => o.value !== highId)}
+                  value={purposeOptions.find(o => o.value === lowId) || null}
+                  onChange={option => setLowId(option?.value ?? null)}
+                />
+              </label>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => saveConfirm.ask(doSave, 'Contract type updated successfully.')}
               disabled={!form.name.trim()}
-              className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-4 text-xs font-semibold text-white disabled:opacity-50"
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-4 text-base font-semibold text-white disabled:opacity-50"
             >
               <Check size={14} /> Save
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 px-4 text-xs font-semibold text-slate-600"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 px-4 text-base font-semibold text-slate-600"
             >
               <X size={14} /> Cancel
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex w-full cursor-pointer items-center gap-3 px-5 py-4 hover:bg-slate-50/60" onClick={() => setExpanded(x => !x)}>
-          {expanded ? <ChevronDown size={18} className="shrink-0 text-slate-400" /> : <ChevronRight size={18} className="shrink-0 text-slate-400" />}
-          <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">#{index + 1}</span>
+        <header className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-6 py-4">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-brand-600 text-white">
+            <FileText size={19} />
+          </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-navy">{type.name}</span>
-              {!type.active && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-500">Inactive</span>}
+              <span className="break-words font-bold text-navy">{type.name}</span>
+              {!type.active && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-base font-bold uppercase text-slate-500">Inactive</span>}
+              {type.checkConstructionRisk && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-base font-bold uppercase text-amber-700">Risk Checklist</span>
+              )}
             </div>
-            {type.description && <div className="mt-0.5 truncate text-sm text-slate-500">{type.description}</div>}
+            {type.description && <div className="mt-0.5 break-words text-base text-slate-500">{type.description}</div>}
           </div>
-          <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
+          <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={() => {
-                setForm({ name: type.name, description: type.description || '', allowCustomPurpose: type.allowCustomPurpose });
-                setEditing(true);
-              }}
-              className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              onClick={() => setShowNewPurpose(true)}
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-teal-600 px-3 text-base font-semibold text-white shadow-soft hover:bg-teal-700"
             >
-              <Pencil size={15} />
+              <Plus size={14} /> Add Purpose
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-50 px-3 text-base font-semibold text-brand-600 hover:bg-brand-100"
+            >
+              <Pencil size={14} /> Edit
             </button>
             <ActiveToggle
               active={type.active}
               onToggle={() => toggleConfirm.ask(doToggleActive, `"${type.name}" has been ${type.active ? 'deactivated' : 'activated'}.`)}
             />
           </div>
-        </div>
+        </header>
       )}
 
-      {expanded && !editing && (
-        <div className="space-y-3 border-t border-slate-100 bg-slate-50/40 p-5">
-          {type.purposes.map((p, pIndex) => (
-            <PurposeRow key={p.id} purpose={p} index={pIndex} onChange={onChange} />
-          ))}
+      <div className="space-y-3 p-6">
+        {type.purposes.map((p, pIndex) => (
+          <PurposeRow key={p.id} purpose={p} index={pIndex} onChange={onChange} />
+        ))}
 
-          {showNewPurpose ? (
-            <NewPurposeForm typeId={type.id} onDone={() => setShowNewPurpose(false)} onChange={onChange} />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowNewPurpose(true)}
-              className="flex h-10 items-center gap-2 rounded-2xl border border-dashed border-slate-300 px-4 text-sm font-semibold text-slate-500 hover:border-brand-300 hover:text-brand-600"
-            >
-              <Plus size={15} /> Add Purpose
-            </button>
-          )}
-        </div>
-      )}
+        {showNewPurpose && <NewPurposeForm typeId={type.id} onDone={() => setShowNewPurpose(false)} onChange={onChange} />}
+      </div>
 
       <ConfirmModal
         open={saveConfirm.open}
@@ -571,20 +699,37 @@ function TypeCard({ type, index, onChange }) {
         onCancel={toggleConfirm.cancel}
       />
       <ResultModal open={!!toggleConfirm.complete} variant="success" message={toggleConfirm.complete} onClose={toggleConfirm.closeComplete} />
-    </div>
+    </section>
   );
 }
 
 export default function ContractTypeTab() {
   const [types, setTypes] = useState([]);
+  const [activeTypeId, setActiveTypeId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [globalDocs, setGlobalDocs] = useState({ documents: [] });
   const [showNewType, setShowNewType] = useState(false);
-  const [newType, setNewType] = useState({ name: '', description: '', allowCustomPurpose: false });
+  const [newType, setNewType] = useState({
+    name: '',
+    description: '',
+    allowCustomPurpose: false,
+    checkConstructionRisk: false,
+    constructionRiskExemptAbove: '',
+  });
   const newTypeConfirm = useConfirmAction();
   const [docNotice, setDocNotice] = useState(null); // { variant, message } | null
 
-  const refresh = () => fetchAdminContractTypes().then(setTypes).catch(() => setTypes([]));
+  const refresh = () =>
+    fetchAdminContractTypes()
+      .then(data => {
+        setTypes(data);
+        // Keeps whatever's currently selected in the left list if it's still present
+        // after the refresh; falls back to the first type otherwise (first load, or
+        // the previously-selected one somehow no longer exists) — activeTypeId never
+        // ends up pointing at nothing while types.length > 0.
+        setActiveTypeId(prev => (data.some(t => t.id === prev) ? prev : (data[0]?.id ?? null)));
+      })
+      .catch(() => setTypes([]));
   const refreshGlobalDocs = () => fetchGlobalDocuments().then(setGlobalDocs).catch(() => {});
   const reportDocResult = (variant, message) => setDocNotice({ variant, message });
 
@@ -594,22 +739,33 @@ export default function ContractTypeTab() {
   }, []);
 
   const openNewType = () => {
-    setNewType({ name: '', description: '', allowCustomPurpose: false });
+    setNewType({
+      name: '',
+      description: '',
+      allowCustomPurpose: false,
+      checkConstructionRisk: false,
+      constructionRiskExemptAbove: '',
+    });
     setShowNewType(true);
   };
 
   const doAddType = async () => {
-    await createContractType(newType);
+    const created = await createContractType({ ...newType, constructionRiskExemptAbove: parseThousands(newType.constructionRiskExemptAbove) });
     setShowNewType(false);
     await refresh();
+    // Jump straight to the new type in the right panel instead of leaving whatever
+    // was selected before — refresh() above would otherwise keep that old selection.
+    setActiveTypeId(created.id);
   };
+
+  const activeType = types.find(t => t.id === activeTypeId);
 
   return (
     <PageContainer>
-      <div className="mb-5 flex flex-wrap items-center gap-3">
+      <div className="mb-5  flex flex-wrap items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold text-navy">CONTRACT TYPE</h1>
-          <p className="mt-1 text-sm text-slate-500">จัดการประเภทสัญญา วัตถุประสงค์ และไฟล์แบบฟอร์มที่แนบ</p>
+          <p className="mt-1 text-base text-black">จัดการประเภทสัญญา วัตถุประสงค์ และไฟล์แบบฟอร์มที่แนบ</p>
         </div>
         {/* ml-auto (not the parent's justify-between) is what keeps this action group
             right-aligned even when it wraps to its own row on tablet/narrow widths —
@@ -636,13 +792,6 @@ export default function ContractTypeTab() {
             onChange={refreshGlobalDocs}
             onResult={reportDocResult}
           />
-          <button
-            type="button"
-            onClick={() => (showNewType ? setShowNewType(false) : openNewType())}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-5 text-sm font-semibold text-white shadow-soft hover:bg-brand-700"
-          >
-            <Plus size={16} /> Add Contract Type
-          </button>
         </div>
       </div>
 
@@ -651,39 +800,65 @@ export default function ContractTypeTab() {
           <input
             value={newType.name}
             onChange={e => setNewType(f => ({ ...f, name: e.target.value }))}
-            className="h-11 w-full rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-brand-500"
+            className="h-11 w-full rounded-2xl border border-slate-200 px-3 text-base outline-none focus:border-brand-500"
             placeholder="Name"
             autoFocus
           />
           <textarea
             value={newType.description}
             onChange={e => setNewType(f => ({ ...f, description: e.target.value }))}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-2xl border border-slate-200 px-3 py-2.5 text-base outline-none focus:border-brand-500"
             placeholder="Description (optional)"
             rows={3}
           />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-base text-slate-600">
             <input
               type="checkbox"
               checked={newType.allowCustomPurpose}
               onChange={e => setNewType(f => ({ ...f, allowCustomPurpose: e.target.checked }))}
               className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
-            Allow custom purpose (free text instead of a dropdown on the New Request form)
+            อนุญาตให้กรอกวัตถุประสงค์เอง (พิมพ์ข้อความอิสระแทนการเลือกจากดรอปดาวน์ในหน้า New Request)
           </label>
+          <label className="flex cursor-pointer items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              checked={newType.checkConstructionRisk}
+              onChange={e => setNewType(f => ({ ...f, checkConstructionRisk: e.target.checked }))}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-slate-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span className="text-base text-slate-600">สัญญานี้ต้องประเมิน Construction Risk Classification Checklist</span>
+          </label>
+
+          {newType.checkConstructionRisk && (
+            <label className="block pl-[1.625rem]">
+              <span className="mb-1.5 block text-base text-slate-500">
+                ไม่ต้องทำแบบประเมิน ถ้ามูลค่าสัญญา (Total Net Price) มากกว่า (บาท) — เว้นว่างไว้ถ้าต้องประเมินทุกมูลค่า
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={newType.constructionRiskExemptAbove}
+                onChange={e => setNewType(f => ({ ...f, constructionRiskExemptAbove: formatThousands(e.target.value) }))}
+                className="h-10 w-full max-w-xs rounded-2xl border border-slate-200 px-3 text-base outline-none focus:border-brand-500"
+                placeholder="เช่น 5,000,000"
+              />
+            </label>
+          )}
+
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => newTypeConfirm.ask(doAddType, `Contract type "${newType.name}" created successfully.`)}
               disabled={!newType.name.trim()}
-              className="flex h-10 items-center gap-1.5 rounded-2xl bg-brand-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+              className="flex h-10 items-center gap-1.5 rounded-2xl bg-brand-600 px-4 text-base font-semibold text-white disabled:opacity-50"
             >
               <Check size={15} /> Save
             </button>
             <button
               type="button"
               onClick={() => setShowNewType(false)}
-              className="flex h-10 items-center gap-1.5 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-600"
+              className="flex h-10 items-center gap-1.5 rounded-2xl border border-slate-200 px-4 text-base font-semibold text-slate-600"
             >
               <X size={15} /> Cancel
             </button>
@@ -696,10 +871,33 @@ export default function ContractTypeTab() {
       ) : !types.length ? (
         <div className="rounded-xl2 border border-slate-200 bg-white py-16 text-center text-slate-400 shadow-card">ยังไม่มีประเภทสัญญาในระบบ</div>
       ) : (
-        <div className="space-y-3">
-          {types.map((t, index) => (
-            <TypeCard key={t.id} type={t} index={index} onChange={refresh} />
-          ))}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] lg:items-start">
+          {/* Left: contract type list — same layout as DownloadFormPage.jsx */}
+          <aside className="overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card">
+            <div className="border-b border-slate-100 p-3">
+              <button
+                type="button"
+                onClick={() => (showNewType ? setShowNewType(false) : openNewType())}
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 text-base font-semibold text-white shadow-soft hover:bg-teal-700"
+              >
+                <Plus size={16} /> Add Contract Type
+              </button>
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {types.map(t => (
+                <TypeListItem key={t.id} type={t} active={t.id === activeTypeId} onSelect={() => setActiveTypeId(t.id)} />
+              ))}
+            </ul>
+          </aside>
+
+          {/* Right: selected type's purposes + form files */}
+          {!activeType ? (
+            <section className="rounded-xl2 border border-slate-200 bg-white py-16 text-center text-slate-400 shadow-card">
+              เลือกประเภทสัญญาเพื่อดูรายละเอียด
+            </section>
+          ) : (
+            <TypeDetailPanel type={activeType} onChange={refresh} />
+          )}
         </div>
       )}
 

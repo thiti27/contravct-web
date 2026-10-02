@@ -9,12 +9,8 @@ import PageContainer from '../layout/PageContainer';
 import { useContracts } from '../../hooks/useContracts';
 import { useMetaContext } from '../../context/MetaContext';
 import { useAuth } from '../../context/AuthContext';
-import { fetchContractRequest } from '../../lib/api';
-import { downloadContractRequisitionFormPdf } from '../../pdf/downloadContractRequisitionFormPdf';
-import { downloadDraftedContractZip } from '../../lib/downloadDraftedContractZip';
-import { downloadSignedContractZip } from '../../lib/downloadSignedContractZip';
+import { downloadContractDocuments } from '../../lib/downloadContractDocuments';
 import { downloadContractsXlsx } from '../../lib/exportContractsXlsx';
-import { normalizeThousands } from '../../lib/formatNumber';
 
 const PAGE_SIZE = 10;
 
@@ -55,6 +51,11 @@ export default function ContractListPage({
   hideChildType = false,
   // My Job/All Job/Contract Making only — see ContractTable.jsx's restrictDownloadToFinal.
   restrictDownloadToFinal = false,
+  // My Job only — the More menu's "Legal Comment" action doesn't make sense on a
+  // list already scoped to the current user's own contracts (scopeToCurrentUser),
+  // even for a user who also happens to be Legal. Every other enableEdit page
+  // (Contract Making, Upload Contract, All Job, Home) keeps offering it.
+  allowLegalComment = true,
 }) {
   const meta = useMetaContext();
   const { user } = useAuth();
@@ -72,39 +73,13 @@ export default function ContractListPage({
 
   // The row object here comes from GET /api/contracts (contractController.js's
   // listContracts) — a summary shape (supplier/contractNo/type/status/...) for table
-  // display, NOT the full contract_requests detail the PDF needs (documents, payments,
-  // comments, approverSignatures, briefDescription, requestorName, ...). Fetching the
-  // full detail here (same fetchContractRequest call EditRequestModal's own Download
-  // PDF button already uses) is what actually makes the row's data PDF-shaped — passing
-  // the summary row straight into the PDF component would render it full of blanks.
+  // display, NOT the full contract_requests detail the PDF needs — downloadContractDocuments
+  // (shared with the public Contract Documents page) is what fetches the full detail
+  // and picks the right bundle (Drafted/Signed/Terminated/bare form) for this status.
   // RowActions (ContractTable.jsx) already wraps this in try/catch with a loading
   // spinner + Thai error alert, so failures here just need to propagate, not be handled
   // twice.
-  const handleDownloadPdf = async contract => {
-    const data = await fetchContractRequest(contract.id);
-    // totalNetPrice comes back from the API as a plain numeric string ("22222.00") —
-    // EditRequestModal.jsx's own loadContractData applies this exact same
-    // normalizeThousands step before the data ever reaches its formik values (and so,
-    // its own Download PDF button); doing it here too keeps the PDF's number
-    // formatting identical regardless of which page triggered the download.
-    const pdfData = { ...data, totalNetPrice: normalizeThousands(data.totalNetPrice) };
-    // Drafted/Signed/Terminated are the only statuses this Download button is ever
-    // offered for on the pages that restrict it (see restrictDownloadToFinal/
-    // ContractTable.jsx) — everywhere else (Home/Find Contract, Approval, Legal, My
-    // History, ...) it stays available on any status with a contract_no, which still
-    // falls through to the bare single-PDF download below.
-    if (contract.status === 'Drafted') {
-      // Not signed yet — a reviewer needs the full package (generated form + every
-      // attached document) in one go, not just the bare form.
-      await downloadDraftedContractZip(pdfData, contract.type);
-    } else if (contract.status === 'Signed' || contract.status === 'Terminated') {
-      // Finalized — just the generated form plus the actual signed contract PDF the
-      // requester uploaded.
-      await downloadSignedContractZip(pdfData, contract.type);
-    } else {
-      await downloadContractRequisitionFormPdf(pdfData, contract.type);
-    }
-  };
+  const handleDownloadPdf = contract => downloadContractDocuments(contract);
 
   // Reset filters + page whenever the scope changes (i.e. switching tabs)
   useEffect(() => {
@@ -151,9 +126,9 @@ export default function ContractListPage({
   return (
     <PageContainer>
       {(title || subtitle) && (
-        <div className="mb-5">
+        <div className="mb-3  ml-3">
           {title && <h1 className="text-2xl font-bold text-navy">{title}</h1>}
-          {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+          {subtitle && <p className="mt-1 text-base text-black">{subtitle}</p>}
         </div>
       )}
 
@@ -195,7 +170,9 @@ export default function ContractListPage({
               checkJobPermission={checkJobPermission}
               hideChildType={hideChildType}
               restrictDownloadToFinal={restrictDownloadToFinal}
+              allowLegalComment={allowLegalComment}
               onLegalComment={contract => setLegalCommentId(contract.id)}
+              onOriginalAtChanged={() => setRefreshKey(k => k + 1)}
             />
             <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
           </>

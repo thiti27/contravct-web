@@ -30,7 +30,7 @@ export default function DateField({ label, required, error, hint, value, onFocus
             onBlur?.(e);
           }}
           {...props}
-          className={`h-11 w-full rounded-2xl border px-3 text-sm outline-none transition-colors focus:bg-white focus:ring-4 ${
+          className={`h-11 w-full rounded-2xl border px-3 text-base outline-none transition-colors focus:bg-white focus:ring-4 ${
             focused ? 'text-slate-700' : 'text-transparent'
           } ${
             error
@@ -39,7 +39,7 @@ export default function DateField({ label, required, error, hint, value, onFocus
           }`}
         />
         {!focused && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base">
             {value ? <span className="text-slate-700">{value}</span> : <span className="text-slate-400">yyyy-mm-dd</span>}
           </span>
         )}

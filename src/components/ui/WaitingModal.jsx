@@ -6,7 +6,7 @@ export default function WaitingModal({ open, message = 'Saving data...' }) {
   return (
     <Modal open={open}>
       <Loader2 size={32} className="mx-auto mb-3 animate-spin text-brand-600" />
-      <p className="text-sm font-medium text-slate-600">{message}</p>
+      <p className="text-base font-medium text-slate-600">{message}</p>
     </Modal>
   );
 }

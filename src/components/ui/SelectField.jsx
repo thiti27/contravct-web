@@ -7,7 +7,7 @@ export default function SelectField({ label, value, onChange, options, className
 
   return (
     <label className={className}>
-      <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">{label}</span>
+      <span className="mb-2 block text-base font-semibold tracking-wide text-black">{label}</span>
       <Select
         classNamePrefix="rs"
         isSearchable={false}

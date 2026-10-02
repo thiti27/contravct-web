@@ -11,8 +11,10 @@ export default function StepsNav() {
           to={path}
           end={path === PATHS.HOME}
           className={({ isActive }) =>
-            `flex items-center gap-4 rounded-xl2 p-5 transition-colors ${
-              isActive ? 'bg-brand-600 text-white shadow-soft' : 'bg-white text-navy shadow-card hover:bg-slate-50'
+            `flex items-center gap-4 rounded-xl2 border p-5 transition-colors ${
+              isActive
+                ? 'border-brand-600 bg-brand-600 text-white shadow-soft'
+                : 'border-slate-200 bg-white text-navy shadow-card hover:bg-slate-50'
             }`
           }
         >
@@ -22,8 +24,8 @@ export default function StepsNav() {
                 <Icon size={24} />
               </span>
               <span>
-                <span className="block text-sm font-bold">{title}</span>
-                <span className={`mt-1 block text-xs ${isActive ? 'text-white/85' : 'text-slate-500'}`}>{desc}</span>
+                <span className="block text-base font-bold">{title}</span>
+                <span className={`mt-1 block text-base ${isActive ? 'text-white/85' : 'text-slate-500'}`}>{desc}</span>
               </span>
             </>
           )}

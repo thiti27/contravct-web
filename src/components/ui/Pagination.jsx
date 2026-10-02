@@ -15,7 +15,7 @@ export default function Pagination({ page, pageSize, total, onPageChange }) {
 
   return (
     <div className="flex flex-col items-center justify-between gap-3 rounded-xl2 border border-slate-200 bg-white px-5 py-4 shadow-card sm:flex-row">
-      <span className="text-sm text-slate-500">
+      <span className="text-base text-slate-500">
         แสดง <b className="font-semibold text-slate-700">{from}-{to}</b> จากทั้งหมด <b className="font-semibold text-slate-700">{total}</b> รายการ
       </span>
 
@@ -33,7 +33,7 @@ export default function Pagination({ page, pageSize, total, onPageChange }) {
             {i > 0 && pages[i - 1] !== p - 1 && <span className="px-1 text-slate-300">…</span>}
             <button
               onClick={() => onPageChange(p)}
-              className={`h-9 min-w-9 rounded-full px-3 text-sm font-semibold transition-colors ${
+              className={`h-9 min-w-9 rounded-full px-3 text-base font-semibold transition-colors ${
                 p === page ? 'bg-brand-600 text-white shadow-soft' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >

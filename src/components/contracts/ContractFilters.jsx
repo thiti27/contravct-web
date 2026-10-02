@@ -35,7 +35,7 @@ export default function ContractFilters({
     <>
       <button
         onClick={onClear}
-        className="flex h-11 items-center gap-1.5 rounded-2xl px-3 text-sm font-medium text-slate-400 hover:text-slate-600"
+        className="flex h-11 items-center gap-1.5 rounded-2xl px-3 text-base font-medium text-slate-400 hover:text-slate-600"
       >
         <RotateCcw size={16} /> Clear
       </button>
@@ -44,7 +44,7 @@ export default function ContractFilters({
           type="button"
           onClick={onExport}
           disabled={exporting}
-          className="flex h-11 items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
+          className="flex h-11 items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 text-base font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
         >
           {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} Export
         </button>
@@ -56,25 +56,25 @@ export default function ContractFilters({
     <section className="rounded-xl2 border border-slate-200 bg-white p-5 shadow-card">
       <div className="flex flex-wrap items-end gap-3">
         <label className={`block ${fieldWidth} ${showBrowse ? 'lg:flex-[1.6]' : 'lg:w-72'}`}>
-          <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">SUPPLIER NAME</span>
+          <span className="mb-2 block text-base font-semibold tracking-wide text-black">SUPPLIER NAME</span>
           <div className="relative">
             <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={filters.supplier}
               onChange={e => set('supplier', e.target.value)}
               placeholder="ค้นหาชื่อ supplier..."
-              className="h-11 w-full rounded-2xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+              className="h-11 w-full rounded-2xl border border-slate-200 pl-10 pr-3 text-base text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
             />
           </div>
         </label>
 
         <label className={`block ${fieldWidth}`}>
-          <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">CONTRACT NO.</span>
+          <span className="mb-2 block text-base font-semibold tracking-wide text-black">CONTRACT NO.</span>
           <input
             value={filters.contractNo}
             onChange={e => set('contractNo', e.target.value)}
             placeholder="เลขที่สัญญา"
-            className="h-11 w-full rounded-2xl border border-slate-200 px-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+            className="h-11 w-full rounded-2xl border border-slate-200 px-3 text-base text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
           />
         </label>
 

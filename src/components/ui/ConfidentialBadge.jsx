@@ -6,7 +6,7 @@
 // always-visible text form.
 export default function ConfidentialBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600">
+    <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-rose-50 px-3 py-1.5 text-base font-semibold text-rose-600">
       <span className="h-2 w-2 rounded-full bg-rose-500" />
       HIGH CONFIDENTIAL
     </span>

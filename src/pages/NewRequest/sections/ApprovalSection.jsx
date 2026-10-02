@@ -100,7 +100,7 @@ export default function ApprovalSection({ formik, approverSignatures, readOnly =
         </span>
         <div>
           <div className="font-bold text-navy">Section Approval</div>
-          <div className="text-sm text-slate-500">การอนุมัติภายในแผนก</div>
+          <div className="text-base text-slate-500">การอนุมัติภายในแผนก</div>
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export default function ApprovalSection({ formik, approverSignatures, readOnly =
               array field with no single input of its own, so this wraps the whole
               picker block instead of a single FieldShell. */}
           <div className="overflow-hidden rounded-2xl border border-slate-200" data-field="approvers">
-            <div className="grid grid-cols-[1fr_2fr] bg-slate-100 text-xs font-bold tracking-wide text-slate-500">
+            <div className="grid grid-cols-[1fr_2fr] bg-slate-100 text-base font-bold tracking-wide text-slate-500">
               <div className="px-4 py-3">Approved by</div>
               <div className="px-4 py-3">Signature</div>
             </div>
@@ -150,13 +150,13 @@ export default function ApprovalSection({ formik, approverSignatures, readOnly =
               const isLocked = !!signature?.approvedAt;
               return (
                 <div key={index} className="grid grid-cols-[1fr_2fr] items-center border-t border-slate-200">
-                  <div className="px-4 py-3 text-sm font-semibold text-slate-600">
+                  <div className="px-4 py-3 text-base font-semibold text-slate-600">
                     {role}
                     {index !== 1 && <span className="text-rose-500"> *</span>}
                   </div>
                   <div className="px-4 py-3">
                     {isLocked ? (
-                      <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-100 px-3 text-sm text-slate-500">
+                      <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-100 px-3 text-base text-slate-500">
                         {signature?.name ? `${signature.name} ${signature.approvedAt || ''}`.trim() : '-'}
                       </div>
                     ) : (
@@ -182,7 +182,7 @@ export default function ApprovalSection({ formik, approverSignatures, readOnly =
                           />
                         </div>
                         {touched.approvers && errors.approvers?.[index] && (
-                          <p className="mt-1 text-xs font-medium text-rose-500">{errors.approvers[index]}</p>
+                          <p className="mt-1 text-base font-medium text-rose-500">{errors.approvers[index]}</p>
                         )}
                       </>
                     )}

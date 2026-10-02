@@ -2,7 +2,7 @@ export default function RadioGroup({ label, required, error, options, value, onC
   return (
     <div>
       {label && (
-        <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">
+        <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">
           {label}
           {required && <span className="text-rose-500"> *</span>}
         </span>
@@ -11,7 +11,7 @@ export default function RadioGroup({ label, required, error, options, value, onC
         {options.map(opt => (
           <label
             key={opt.value}
-            className={`flex items-center gap-2 text-sm ${disabled ? 'cursor-not-allowed' : ''} ${
+            className={`flex items-center gap-2 text-base ${disabled ? 'cursor-not-allowed' : ''} ${
               value === opt.value ? 'font-bold text-brand-600' : 'text-slate-600'
             }`}
           >
@@ -33,7 +33,7 @@ export default function RadioGroup({ label, required, error, options, value, onC
           </label>
         ))}
       </div>
-      {error && <p className="mt-1 text-xs font-medium text-rose-500">{error}</p>}
+      {error && <p className="mt-1 text-base font-medium text-rose-500">{error}</p>}
     </div>
   );
 }

@@ -125,7 +125,7 @@ export default function LinkedRequestModal({ masterContract, remark, onClose, on
         type="button"
         onClick={handleSaveDraftClick}
         disabled={saving}
-        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
       >
         <Save size={16} /> Save Draft
       </button>
@@ -133,7 +133,7 @@ export default function LinkedRequestModal({ masterContract, remark, onClose, on
         type="button"
         onClick={handleSendRequestClick}
         disabled={saving}
-        className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+        className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
       >
         <Send size={16} /> Send Request
       </button>
@@ -141,7 +141,7 @@ export default function LinkedRequestModal({ masterContract, remark, onClose, on
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
       >
         <X size={16} /> Close
       </button>

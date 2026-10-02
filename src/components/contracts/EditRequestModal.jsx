@@ -107,6 +107,11 @@ const MODE_TITLES = {
   approve: 'Approval',
 };
 
+// Hover tooltip (native `title`) shared by both Waive buttons below — the Manager's
+// own (Waiting Approver 3) and Legal's (mode="legal") — same underlying outcome
+// (status -> Signed, requirement waived) regardless of which role clicks it.
+const WAIVE_TOOLTIP = 'ได้รับการยกเว้นไม่ต้องทำสัญญา';
+
 // Hover tooltips (native `title`) for the Legal modal's footer buttons (mode="legal") —
 // same wording regardless of which page opened it (Legal > Waiting or a job list's
 // Legal Comment action). Cancel and Terminate share one tooltip since they're the same
@@ -115,7 +120,7 @@ const LEGAL_BUTTON_TOOLTIPS = {
   save: 'แก้ไขข้อมูลและ Comment ได้ โดยไม่ส่งอีเมล',
   check: 'ตรวจสอบข้อมูล',
   comment: 'เพิ่ม Comment และส่งอีเมล',
-  waive: 'ข้ามการตรวจสอบทางกฎหมายและเปลี่ยนสถานะเป็น Signed',
+  waive: WAIVE_TOOLTIP,
   cancelOrTerminate: 'ยกเลิกสัญญานี้',
 };
 
@@ -389,7 +394,7 @@ export default function EditRequestModal({
             type="button"
             onClick={handleApproveClick}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
           >
             <CheckCircle2 size={16} /> Approve
           </button>
@@ -397,7 +402,7 @@ export default function EditRequestModal({
             type="button"
             onClick={() => handleReturnOrRejectClick('return')}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-amber-200 px-6 text-sm font-semibold text-amber-600 hover:bg-amber-50 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-amber-200 px-6 text-base font-semibold text-amber-600 hover:bg-amber-50 disabled:opacity-60"
           >
             <RotateCcw size={16} /> Return
           </button>
@@ -405,20 +410,23 @@ export default function EditRequestModal({
             type="button"
             onClick={() => handleReturnOrRejectClick('reject')}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-base font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
           >
             <XCircle size={16} /> Reject
           </button>
           {/* Only the last approver stage (3) can waive straight to Signed — Waiting
-              Approver 1/2 must go through Approve normally instead. Re-enforced
-              server-side too (approvalController.waiveRequest), never trusted from
-              the client alone. */}
-          {initialData?.status === 'Waiting Approver 3' && (
+              Approver 1/2 must go through Approve normally instead. Also only offered
+              for a brand-new contract request (remark = 'new') — a Renew/Amend/Claim
+              Note/Terminate/Cancel request has nothing to "waive" the requirement for.
+              Re-enforced server-side too (approvalController.waiveRequest), never
+              trusted from the client alone. */}
+          {initialData?.status === 'Waiting Approver 3' && initialData?.remark === 'new' && (
             <button
               type="button"
               onClick={handleWaiveClick}
               disabled={saving}
-              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+              title={WAIVE_TOOLTIP}
+              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
             >
               <MinusCircle size={16} /> Waive
             </button>
@@ -431,7 +439,7 @@ export default function EditRequestModal({
             onClick={handleLegalSaveClick}
             disabled={saving}
             title={LEGAL_BUTTON_TOOLTIPS.save}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
           >
             <Save size={16} /> Save
           </button>
@@ -440,7 +448,7 @@ export default function EditRequestModal({
             onClick={handleCheckClick}
             disabled={saving}
             title={LEGAL_BUTTON_TOOLTIPS.check}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
           >
             <ShieldCheck size={16} /> Check
           </button>
@@ -449,19 +457,24 @@ export default function EditRequestModal({
             onClick={handleCommentClick}
             disabled={saving}
             title={LEGAL_BUTTON_TOOLTIPS.comment}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
           >
             <MessageSquare size={16} /> Comment
           </button>
-          <button
-            type="button"
-            onClick={handleWaiveClick}
-            disabled={saving}
-            title={LEGAL_BUTTON_TOOLTIPS.waive}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
-          >
-            <MinusCircle size={16} /> Waive
-          </button>
+          {/* Only offered for a brand-new contract request (remark = 'new') — same
+              rule as the Manager's own Waive above; a Renew/Amend/Claim Note/
+              Terminate/Cancel request has nothing to "waive" the requirement for. */}
+          {initialData?.remark === 'new' && (
+            <button
+              type="button"
+              onClick={handleWaiveClick}
+              disabled={saving}
+              title={LEGAL_BUTTON_TOOLTIPS.waive}
+              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            >
+              <MinusCircle size={16} /> Waive
+            </button>
+          )}
           {/* Drafted contracts offer Cancel; every other status (Signed, and any
               other status that could theoretically land here) keeps Terminate —
               the pre-existing, unconditional button this replaces. */}
@@ -471,7 +484,7 @@ export default function EditRequestModal({
               onClick={handleLegalCancelClick}
               disabled={saving}
               title={LEGAL_BUTTON_TOOLTIPS.cancelOrTerminate}
-              className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+              className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-base font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
             >
               <XCircle size={16} /> Cancel
             </button>
@@ -481,7 +494,7 @@ export default function EditRequestModal({
               onClick={handleTerminateClick}
               disabled={saving}
               title={LEGAL_BUTTON_TOOLTIPS.cancelOrTerminate}
-              className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+              className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-base font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
             >
               <Ban size={16} /> Terminate
             </button>
@@ -497,7 +510,7 @@ export default function EditRequestModal({
             type="button"
             onClick={handleLegalCancelClick}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-base font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
           >
             <XCircle size={16} /> Cancel
           </button>
@@ -506,7 +519,7 @@ export default function EditRequestModal({
             type="button"
             onClick={handleTerminateClick}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-rose-200 px-6 text-base font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
           >
             <Ban size={16} /> Terminate
           </button>
@@ -516,7 +529,7 @@ export default function EditRequestModal({
           type="button"
           onClick={handleSaveChangeClick}
           disabled={saving}
-          className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+          className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
         >
           <Save size={16} /> Save Change
         </button>
@@ -525,7 +538,7 @@ export default function EditRequestModal({
           type="button"
           onClick={handleSendRequestClick}
           disabled={saving}
-          className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+          className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
         >
           <Send size={16} /> Send Request
         </button>
@@ -535,7 +548,7 @@ export default function EditRequestModal({
             type="button"
             onClick={handleSaveDraftClick}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
           >
             <Save size={16} /> Save Draft
           </button>
@@ -543,7 +556,7 @@ export default function EditRequestModal({
             type="button"
             onClick={handleSendRequestClick}
             disabled={saving}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+            className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
           >
             <Send size={16} /> Sent Request
           </button>
@@ -553,7 +566,7 @@ export default function EditRequestModal({
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+        className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
       >
         <X size={16} /> Close
       </button>

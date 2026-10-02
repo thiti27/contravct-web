@@ -34,13 +34,13 @@ const DOT_CLASSES = {
 
 // `wrap` lets a caller allow long statuses like "Waiting Approver 1" to break onto a
 // second line instead of overflowing past the badge — unused by the job/browse tables
-// today (their Status column is now sized for one line at this smaller text-xs), but
+// today (their Status column is now sized for one line at this smaller text-base), but
 // left in place for any narrower context that still needs it.
 export default function StatusBadge({ status, wrap = false }) {
   const tone = TONE_BY_STATUS(status);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${wrap ? 'whitespace-normal text-center leading-tight' : 'whitespace-nowrap'
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-base font-medium ${wrap ? 'whitespace-normal text-center leading-tight' : 'whitespace-nowrap'
         } ${TONE_CLASSES[tone]}`}
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${DOT_CLASSES[tone]}`} />

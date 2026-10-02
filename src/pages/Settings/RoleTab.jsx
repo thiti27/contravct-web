@@ -13,7 +13,7 @@ import { formatDateTime } from '../../lib/formatDate';
 
 const EMPTY_FILTERS = { search: '', status: '' };
 const PAGE_SIZE = 10;
-const EMPTY_FORM = { emId: '', firstName: '', lastName: '', view: false, admin: false, legal: false, active: true };
+const EMPTY_FORM = { emId: '', firstName: '', lastName: '', view: false, admin: false, legal: false, ext: '', active: true };
 
 // "000123 - สมชาย ใจดี" per the spec — distinct from ApprovalSection.jsx's own
 // employee option label (just the name, no em_id prefix), since here the em_id
@@ -47,7 +47,7 @@ function PermissionCheck({ on }) {
         on ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-300'
       }`}
     >
-      {on ? <Check size={14} strokeWidth={3} /> : <span className="text-xs">–</span>}
+      {on ? <Check size={14} strokeWidth={3} /> : <span className="text-base">–</span>}
     </span>
   );
 }
@@ -55,7 +55,7 @@ function PermissionCheck({ on }) {
 function Switch({ label, checked, onChange }) {
   return (
     <label className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3">
-      <span className="text-sm font-semibold text-slate-600">{label}</span>
+      <span className="text-base font-semibold text-slate-600">{label}</span>
       <button
         type="button"
         role="switch"
@@ -140,6 +140,7 @@ export default function RoleTab() {
       view: role.view,
       admin: role.admin,
       legal: role.legal,
+      ext: role.ext || '',
       active: role.active,
     });
     setFormError('');
@@ -172,6 +173,7 @@ export default function RoleTab() {
           view: form.view,
           admin: form.admin,
           legal: form.legal,
+          ext: form.ext,
           active: form.active,
           updatedName: user?.name,
         });
@@ -184,6 +186,7 @@ export default function RoleTab() {
           view: form.view,
           admin: form.admin,
           legal: form.legal,
+          ext: form.ext,
           updatedName: user?.name,
         });
         setResult({ variant: 'success', message: `"${form.firstName} ${form.lastName}" has been added successfully.` });
@@ -215,15 +218,15 @@ export default function RoleTab() {
 
   return (
     <PageContainer>
-      <div className="mb-5 flex flex-wrap items-center gap-3">
+      <div className="mb-5   flex flex-wrap items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold text-navy">ROLE MANAGEMENT</h1>
-          <p className="mt-1 text-sm text-slate-500">จัดการสิทธิ์การใช้งานของผู้ใช้งานในระบบ</p>
+          <p className="mt-1 text-base text-black">จัดการสิทธิ์การใช้งานของผู้ใช้งานในระบบ</p>
         </div>
         <button
           type="button"
           onClick={openAdd}
-          className="ml-auto flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-5 text-sm font-semibold text-white shadow-soft hover:bg-brand-700"
+          className="ml-auto flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-5 text-base font-semibold text-white shadow-soft hover:bg-brand-700"
         >
           <Plus size={16} /> Add New Role
         </button>
@@ -231,14 +234,14 @@ export default function RoleTab() {
 
       <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl2 border border-slate-200 bg-white p-5 shadow-card">
         <label className="block w-full sm:w-72">
-          <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">SEARCH</span>
+          <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">SEARCH</span>
           <div className="relative">
             <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={filters.search}
               onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
               placeholder="Employee ID, First name, Last name..."
-              className="h-11 w-full rounded-2xl border border-slate-200 pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+              className="h-11 w-full rounded-2xl border border-slate-200 pl-10 pr-3 text-base text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
             />
           </div>
         </label>
@@ -252,7 +255,7 @@ export default function RoleTab() {
         <button
           type="button"
           onClick={() => setFilters(EMPTY_FILTERS)}
-          className="flex h-11 items-center gap-1.5 rounded-2xl px-3 text-sm font-medium text-slate-400 hover:text-slate-600 sm:ml-auto"
+          className="flex h-11 items-center gap-1.5 rounded-2xl px-3 text-base font-medium text-slate-400 hover:text-slate-600 sm:ml-auto"
         >
           <RotateCcw size={16} /> Clear
         </button>
@@ -267,11 +270,12 @@ export default function RoleTab() {
           <div className="py-16 text-center text-slate-400">No users found</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse text-sm">
+            <table className="w-full min-w-[860px] border-collapse text-base">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr className="border-b border-slate-200 bg-slate-50 text-left text-base font-semibold uppercase tracking-wide text-slate-500">
                   <th className="px-6 py-3">Employee ID</th>
                   <th className="px-6 py-3">Name</th>
+                  <th className="px-6 py-3">Ext.</th>
                   <th className="px-6 py-3 text-center">View</th>
                   <th className="px-6 py-3 text-center">Admin</th>
                   <th className="px-6 py-3 text-center">Legal</th>
@@ -287,6 +291,7 @@ export default function RoleTab() {
                     <td className="px-6 py-3 font-semibold text-navy">
                       {role.firstName} {role.lastName}
                     </td>
+                    <td className="px-6 py-3 text-slate-600">{role.ext || '-'}</td>
                     <td className="px-6 py-3 text-center">
                       <PermissionCheck on={role.view} />
                     </td>
@@ -298,7 +303,7 @@ export default function RoleTab() {
                     </td>
                     <td className="px-6 py-3 text-center">
                       <span
-                        className={`inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold ${
+                        className={`inline-flex h-6 items-center rounded-full px-2.5 text-base font-bold ${
                           role.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
@@ -309,7 +314,7 @@ export default function RoleTab() {
                       {role.updatedBy ? (
                         <>
                           <div className="truncate font-semibold text-slate-700">{role.updatedBy}</div>
-                          <div className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(role.updatedAt)}</div>
+                          <div className="whitespace-nowrap text-base text-slate-400">{formatDateTime(role.updatedAt)}</div>
                         </>
                       ) : (
                         <span className="text-slate-400">-</span>
@@ -364,7 +369,7 @@ export default function RoleTab() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-sm font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
+              className="flex h-11 items-center gap-2 rounded-2xl bg-brand-600 px-6 text-base font-semibold text-white shadow-soft hover:bg-brand-700 disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save
             </button>
@@ -372,7 +377,7 @@ export default function RoleTab() {
               type="button"
               onClick={closeModal}
               disabled={saving}
-              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+              className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 px-6 text-base font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
             >
               <X size={16} /> Cancel
             </button>
@@ -381,11 +386,11 @@ export default function RoleTab() {
       >
         <div className="space-y-4">
           <label className="block">
-            <span className="mb-2 block text-xs font-semibold tracking-wide text-slate-500">
+            <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">
               Employee {!editingRole && <span className="text-rose-500">*</span>}
             </span>
             {editingRole ? (
-              <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-100 px-4 text-sm text-slate-600">
+              <div className="flex h-11 items-center rounded-2xl border border-slate-200 bg-slate-100 px-4 text-base text-slate-600">
                 {form.emId} - {form.firstName} {form.lastName}
               </div>
             ) : (
@@ -403,12 +408,22 @@ export default function RoleTab() {
             )}
           </label>
 
+          <label className="block">
+            <span className="mb-2 block text-base font-semibold tracking-wide text-slate-500">Ext. (เบอร์โต๊ะ)</span>
+            <input
+              value={form.ext}
+              onChange={e => setForm(f => ({ ...f, ext: e.target.value }))}
+              placeholder="เช่น 1234"
+              className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-base text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10"
+            />
+          </label>
+
           <Switch label="View" checked={form.view} onChange={v => setForm(f => ({ ...f, view: v }))} />
           <Switch label="Admin" checked={form.admin} onChange={v => setForm(f => ({ ...f, admin: v }))} />
           <Switch label="Legal" checked={form.legal} onChange={v => setForm(f => ({ ...f, legal: v }))} />
           {editingRole && <Switch label="Active" checked={form.active} onChange={v => setForm(f => ({ ...f, active: v }))} />}
 
-          {formError && <p className="text-xs font-medium text-rose-500">{formError}</p>}
+          {formError && <p className="text-base font-medium text-rose-500">{formError}</p>}
         </div>
       </FormModal>
 

@@ -27,7 +27,7 @@ export default function RemarkBadge({ remark }) {
   if (!remark) return null;
   return (
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-base font-semibold ${
         REMARK_TONES[remark] || 'bg-slate-100 text-slate-500'
       }`}
     >

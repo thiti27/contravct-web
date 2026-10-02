@@ -6,18 +6,18 @@ function CommentItem({ comment }) {
   const initial = (comment.name || '?').trim().charAt(0).toUpperCase();
   return (
     <div className="flex gap-3">
-      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">{initial}</div>
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-600 text-base font-bold text-white">{initial}</div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-navy">{comment.name || 'Unknown'}</span>
+            <span className="text-base font-semibold text-navy">{comment.name || 'Unknown'}</span>
             {comment.role && (
-              <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600">{comment.role}</span>
+              <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-base font-medium text-brand-600">{comment.role}</span>
             )}
           </div>
-          <span className="text-xs text-slate-400">{formatDateTime(comment.createdAt)}</span>
+          <span className="text-base text-slate-400">{formatDateTime(comment.createdAt)}</span>
         </div>
-        <p className="mt-1 text-sm text-slate-600">{comment.comment}</p>
+        <p className="mt-1 text-base text-slate-600">{comment.comment}</p>
       </div>
     </div>
   );
@@ -32,7 +32,7 @@ export default function CommentSection({ formik, required, error, comments = [],
         </span>
         <div>
           <div className="font-bold text-navy">Comment</div>
-          <div className="text-sm text-slate-500">Requester / Supervisor / LG / Others (ถ้ามี)</div>
+          <div className="text-base text-slate-500">Requester / Supervisor / LG / Others (ถ้ามี)</div>
         </div>
       </div>
 

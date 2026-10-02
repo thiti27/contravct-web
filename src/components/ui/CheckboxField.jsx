@@ -1,6 +1,6 @@
 export default function CheckboxField({ label, checked, onChange, disabled = false }) {
   return (
-    <label className={`flex h-11 items-center gap-2 text-sm font-semibold text-slate-600 ${disabled ? 'opacity-60' : ''}`}>
+    <label className={`flex h-11 items-center gap-2 text-base font-semibold text-slate-600 ${disabled ? 'opacity-60' : ''}`}>
       <input
         type="checkbox"
         checked={checked}

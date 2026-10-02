@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { generateContractRequisitionFormPdfBlob } from '../pdf/downloadContractRequisitionFormPdf';
+import { generateConstructionRiskChecklistPdfBlob } from '../pdf/downloadConstructionRiskChecklistPdf';
 import { fetchUploadBlob } from './api';
 import { safeZipEntryName as safeName, triggerZipDownload } from './zipDownload';
 
@@ -15,6 +16,13 @@ export async function downloadSignedContractZip(data, contractTypeLabel) {
 
   const { blob: pdfBlob, fileName: pdfFileName } = await generateContractRequisitionFormPdfBlob(data, contractTypeLabel);
   zip.file(safeName(`1_${pdfFileName}`), pdfBlob);
+
+  // Same condition as downloadDraftedContractZip.js — only present when this contract's
+  // Purpose came from the Construction Risk Classification Checklist popup.
+  if (data.constructionRiskAnswers) {
+    const { blob: riskBlob, fileName: riskFileName } = await generateConstructionRiskChecklistPdfBlob(data);
+    zip.file(safeName(`1_${riskFileName}`), riskBlob);
+  }
 
   if (data.signedFile) {
     const { blob } = await fetchUploadBlob(data.signedFile.id);

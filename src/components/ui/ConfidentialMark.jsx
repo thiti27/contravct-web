@@ -11,7 +11,7 @@ export default function ConfidentialMark({ confidentiality, className = '' }) {
     <span
       title="HIGH CONFIDENTIAL"
       aria-label="HIGH CONFIDENTIAL"
-      className={`inline-flex shrink-0 cursor-default items-center font-sans text-sm font-extrabold leading-none text-rose-500 ${className}`}
+      className={`inline-flex shrink-0 cursor-default items-center font-sans text-base font-extrabold leading-none text-rose-500 ${className}`}
     >
       !
     </span>

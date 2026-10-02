@@ -1,4 +1,4 @@
-import { Eye } from 'lucide-react';
+import { FileSearch } from 'lucide-react';
 import StatusBadge from '../ui/StatusBadge';
 import ContractNoCell from '../ui/ContractNoCell';
 import { formatDateTime } from '../../lib/formatDate';
@@ -12,7 +12,7 @@ export default function ActionHistoryTable({ items, onView }) {
   return (
     <section className="min-h-[360px] overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
+        <table className="w-full min-w-[900px] table-fixed border-collapse text-base">
           <colgroup>
             {/* Narrowed to free space for Contract No. below — Supplier still wraps
                 onto multiple lines for long names (no truncate/nowrap here). */}
@@ -27,7 +27,7 @@ export default function ActionHistoryTable({ items, onView }) {
             <col style={{ width: '190px' }} />
           </colgroup>
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-200 bg-slate-50 text-base font-semibold uppercase tracking-wide text-slate-500">
               <th className="px-6 py-3 text-center">Supplier</th>
               <th className="px-6 py-3 text-left">Contract No.</th>
               <th className="px-6 py-3 text-center">Type</th>
@@ -48,7 +48,7 @@ export default function ActionHistoryTable({ items, onView }) {
                     {item.type}
                   </div>
                   {item.purpose && (
-                    <div title={item.purpose} className="truncate text-xs text-slate-400">
+                    <div title={item.purpose} className="truncate text-base text-slate-400">
                       {item.purpose}
                     </div>
                   )}
@@ -62,15 +62,15 @@ export default function ActionHistoryTable({ items, onView }) {
                       {item.updatedName}
                     </div>
                   )}
-                  <div className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(item.updatedAt)}</div>
+                  <div className="whitespace-nowrap text-base text-slate-400">{formatDateTime(item.updatedAt)}</div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-1.5 text-right">
                   <button
                     type="button"
                     onClick={() => onView?.(item.contractRequestId)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-50 px-4 text-base font-semibold text-brand-600 hover:bg-brand-100"
                   >
-                    <Eye size={15} /> View
+                    <FileSearch size={15} /> View
                   </button>
                 </td>
               </tr>

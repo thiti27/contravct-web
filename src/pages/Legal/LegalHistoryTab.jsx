@@ -54,9 +54,9 @@ export default function LegalHistoryTab() {
 
   return (
     <PageContainer>
-      <div className="mb-5">
+    <div className="mb-3  ml-3">
         <h1 className="text-2xl font-bold text-navy">LEGAL HISTORY</h1>
-        <p className="mt-1 text-sm text-slate-500">ประวัติการดำเนินการของฝ่ายกฎหมาย (Check, Terminate)</p>
+        <p className="mt-1 text-base text-black">ประวัติการดำเนินการของฝ่ายกฎหมาย (Check, Terminate)</p>
       </div>
 
       {!user?.legal ? (

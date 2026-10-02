@@ -11,7 +11,7 @@ export default function WaitingCheckTab() {
       <PageContainer>
         <div className="mb-5">
           <h1 className="text-2xl font-bold text-navy">WAITING CHECK</h1>
-          <p className="mt-1 text-sm text-slate-500">รายการสัญญาที่รอฝ่ายกฎหมายตรวจสอบ</p>
+          <p className="mt-1 text-base text-slate-500">รายการสัญญาที่รอฝ่ายกฎหมายตรวจสอบ</p>
         </div>
         <div className="rounded-xl2 border border-slate-200 bg-white py-16 text-center text-slate-400 shadow-card">
           คุณไม่มีสิทธิ์เข้าถึงหน้านี้

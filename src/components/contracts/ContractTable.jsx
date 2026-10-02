@@ -4,10 +4,11 @@ import {
   Ban,
   CalendarDays,
   Download,
-  Eye,
   FileEdit,
   FilePlus2,
+  FileSearch,
   Loader2,
+  MapPin,
   MessageSquare,
   MoreVertical,
   Pencil,
@@ -17,10 +18,12 @@ import {
 } from 'lucide-react';
 import StatusBadge from '../ui/StatusBadge';
 import ContractNoCell from '../ui/ContractNoCell';
+import ConfirmModal from '../ui/ConfirmModal';
 import { formatDateTime } from '../../lib/formatDate';
 import { EDITABLE_STATUSES } from '../../lib/statusGroups';
 import { hasConfidentialAccess } from '../../lib/confidentialAccess';
 import { useAuth } from '../../context/AuthContext';
+import { setOriginalAtLegal } from '../../lib/api';
 
 const DOCUMENT_DATES = ['2027-04-02', '2027-12-12', '2027-03-05'];
 
@@ -79,6 +82,9 @@ function MoreMenu({
   onTerminate,
   showLegalComment,
   onLegalComment,
+  showOriginalAtToggle,
+  originalAtLegal,
+  onOriginalAtToggle,
   onClose,
   // Already resolved by RowActions (see its own `effectiveRestricted`) — on My Job this
   // is always false regardless of the row's actual confidentiality, since every row
@@ -150,7 +156,7 @@ function MoreMenu({
           onClick={restricted ? undefined : onEdit}
           disabled={restricted}
           title={restricted ? 'You do not have permission to access this contract.' : undefined}
-          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
         >
           <Pencil size={14} /> Edit
@@ -162,7 +168,7 @@ function MoreMenu({
           onClick={restricted ? undefined : onCancel}
           disabled={restricted}
           title={restricted ? 'You do not have permission to access this contract.' : undefined}
-          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
             restricted ? 'cursor-not-allowed text-slate-300' : 'text-rose-600 hover:bg-rose-50'
           }`}
         >
@@ -175,10 +181,10 @@ function MoreMenu({
           onClick={restricted ? undefined : onView}
           disabled={restricted}
           title={restricted ? 'You do not have permission to access this contract.' : undefined}
-          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
         >
-          <Eye size={14} /> View
+          <FileSearch size={14} /> View
         </button>
       )}
       {showUploadSign && (
@@ -187,7 +193,7 @@ function MoreMenu({
           onClick={restricted ? undefined : onUploadSign}
           disabled={restricted}
           title={restricted ? 'You do not have permission to access this contract.' : undefined}
-          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
         >
           <UploadCloud size={14} /> Upload Signed Contract
@@ -200,7 +206,7 @@ function MoreMenu({
             onClick={restricted ? undefined : onRenew}
             disabled={restricted}
             title={restricted ? 'You do not have permission to access this contract.' : undefined}
-            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
               restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -211,7 +217,7 @@ function MoreMenu({
             onClick={restricted ? undefined : onAmend}
             disabled={restricted}
             title={restricted ? 'You do not have permission to access this contract.' : undefined}
-            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
               restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -222,7 +228,7 @@ function MoreMenu({
             onClick={restricted ? undefined : onClaimNote}
             disabled={restricted}
             title={restricted ? 'You do not have permission to access this contract.' : undefined}
-            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
               restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -233,7 +239,7 @@ function MoreMenu({
             onClick={restricted ? undefined : onTerminate}
             disabled={restricted}
             title={restricted ? 'You do not have permission to access this contract.' : undefined}
-            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+            className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
               restricted ? 'cursor-not-allowed text-slate-300' : 'text-rose-600 hover:bg-rose-50'
             }`}
           >
@@ -251,11 +257,28 @@ function MoreMenu({
           onClick={restricted ? undefined : onLegalComment}
           disabled={restricted}
           title={restricted ? 'You do not have permission to access this contract.' : undefined}
-          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-sm ${
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
             restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
           <MessageSquare size={14} /> Legal Comment
+        </button>
+      )}
+      {/* Sibling of showLegalComment, rendered right after it — see
+          ContractTable.jsx's showOriginalAtToggle for who gets this (Signed always,
+          Terminated only for legal users). Toggles between the two Original At states;
+          the label always names the state a click would move it TO. */}
+      {showOriginalAtToggle && (
+        <button
+          type="button"
+          onClick={restricted ? undefined : onOriginalAtToggle}
+          disabled={restricted}
+          title={restricted ? 'You do not have permission to access this contract.' : undefined}
+          className={`flex w-full items-center justify-start gap-2 px-4 py-2 text-left text-base ${
+            restricted ? 'cursor-not-allowed text-slate-300' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <MapPin size={14} /> {originalAtLegal ? 'Original At Owner' : 'Original At Legal'}
         </button>
       )}
     </div>,
@@ -282,6 +305,14 @@ function RowActions({
   onTerminate,
   showLegalComment,
   onLegalComment,
+  showOriginalAtToggle,
+  originalAtLegal,
+  onOriginalAtToggle,
+  // Home only — a legal user's More icon is never disabled by "nothing to do here"
+  // (unlike every other user, who still sees it disabled on a status with no
+  // applicable action) — legal keeps an interest in every row regardless of status,
+  // not just the ones showOriginalAtToggle/showLegalComment happen to cover.
+  moreAlwaysActive = false,
   approvalMode,
   onView,
   restricted,
@@ -310,7 +341,7 @@ function RowActions({
     contractNo !== '-' &&
     !effectiveRestricted &&
     (!restrictDownloadToFinal || status === 'Drafted' || status === 'Signed' || status === 'Terminated');
-  const hasAnyAction = showEdit || showView || showSignedActions || showCancel || showLegalComment;
+  const hasAnyAction = showEdit || showView || showSignedActions || showCancel || showLegalComment || showOriginalAtToggle;
   // A Terminate request that's reached Signed means the whole contract is over — the
   // cascade in signedContractController.js already flipped every other row in the
   // family to Terminated, so there's nothing left to Renew/Amend/Claim Note/Terminate/
@@ -318,7 +349,7 @@ function RowActions({
   // showLegalComment individually above) so it can't be reintroduced by a future action
   // flag that also happens to key off status === 'Signed'.
   const isTerminatedRequest = remark === 'terminate' && status === 'Signed';
-  const moreDisabled = effectiveRestricted || !hasAnyAction || isTerminatedRequest;
+  const moreDisabled = effectiveRestricted || (!moreAlwaysActive && (!hasAnyAction || isTerminatedRequest));
   const [anchorRect, setAnchorRect] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const btnRef = useRef(null);
@@ -344,10 +375,12 @@ function RowActions({
       <td className="whitespace-nowrap px-3 py-1.5 text-right align-top">
         <button
           type="button"
-          onClick={onView}
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700"
+          onClick={effectiveRestricted ? undefined : onView}
+          disabled={effectiveRestricted}
+          title={effectiveRestricted ? 'You do not have permission to access this contract.' : undefined}
+          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-50 px-3 text-base font-semibold text-brand-600 hover:bg-brand-100 disabled:cursor-not-allowed disabled:bg-white disabled:text-slate-300 disabled:opacity-60"
         >
-          <Eye size={15} /> View
+          <FileSearch size={15} /> View
         </button>
       </td>
     );
@@ -364,11 +397,11 @@ function RowActions({
             ? 'You do not have permission to download this contract.'
             : restrictDownloadToFinal && status !== 'Drafted' && status !== 'Signed' && status !== 'Terminated'
               ? 'Download is only available once this contract is Drafted, Signed, or Terminated.'
-              : undefined
+              : 'Download'
         }
-        className="mr-1.5 inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white disabled:border disabled:border-dashed disabled:border-slate-200 disabled:bg-white disabled:text-slate-300"
+        className="mr-1.5 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white disabled:border disabled:border-dashed disabled:border-slate-200 disabled:bg-white disabled:text-slate-300"
       >
-        {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} Download
+        {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
       </button>
       {/* Rendered whenever there's actually something behind it (an editable/viewable
           status, or a restricted row that needs the disabled state + tooltip to explain
@@ -441,6 +474,12 @@ function RowActions({
             setAnchorRect(null);
             onLegalComment?.();
           }}
+          showOriginalAtToggle={showOriginalAtToggle}
+          originalAtLegal={originalAtLegal}
+          onOriginalAtToggle={() => {
+            setAnchorRect(null);
+            onOriginalAtToggle?.();
+          }}
         />
       )}
     </td>
@@ -462,6 +501,9 @@ export default function ContractTable({
   onClaimNote,
   onTerminate,
   onLegalComment,
+  // My Job only (see ContractListPage.jsx's own comment) — false there, true
+  // (default) everywhere else that already offers Legal Comment.
+  allowLegalComment = true,
   approvalMode = false,
   onView,
   viewableStatuses = [],
@@ -480,53 +522,83 @@ export default function ContractTable({
   hideChildType = false,
   // My Job/All Job/Contract Making only — see RowActions' own restrictDownloadToFinal.
   restrictDownloadToFinal = false,
+  // Home only — refetches the list once the Original At confirm below actually saves,
+  // same "bump a refreshKey" pattern every other row action's onSaved already uses at
+  // the ContractListPage level.
+  onOriginalAtChanged,
 }) {
   const { user } = useAuth();
   const rowMeta = buildRowMeta(contracts);
+  // { id, legal } of the row awaiting its Yes/No confirm, or null — a single shared
+  // modal instance (not one per row) driven by this state, same reasoning as
+  // MoreMenu's own portal-per-open-menu, just simpler since only one can be open.
+  const [originalAtConfirm, setOriginalAtConfirm] = useState(null);
+  const [originalAtSaving, setOriginalAtSaving] = useState(false);
+
+  const handleOriginalAtConfirm = async () => {
+    if (!originalAtConfirm) return;
+    setOriginalAtSaving(true);
+    try {
+      await setOriginalAtLegal(originalAtConfirm.id, { legal: originalAtConfirm.legal, emId: user?.em_id, updatedName: user?.name });
+      setOriginalAtConfirm(null);
+      onOriginalAtChanged?.();
+    } catch {
+      window.alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setOriginalAtSaving(false);
+    }
+  };
+
   return (
     <section className="min-h-[360px] overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] table-fixed border-collapse text-sm">
+        <table className="w-full min-w-[1060px] table-fixed border-collapse text-base">
           <colgroup>
-            {/* Narrowed to free space for Contract No. below — Supplier still wraps
-                onto multiple lines for long names (no truncate/nowrap here), same as
-                it always has. */}
-            <col style={{ width: '260px' }} />
-            {/* Widened so the full contract number (e.g. "DSST08-2026-01") never
-                truncates or wraps — it's shrink-0 in ContractNoCell, so it needs
-                actual room rather than relying on ellipsis like the remark next to it. */}
-            <col style={{ width: '230px' }} />
-            <col />
+            {/* Column widths graduated by what each one's content actually needs, not
+                one or two columns dominating and the rest left cramped: Supplier/
+                Contract No./Type (the three text-bearing columns) each get comparable
+                room, Expire Date/Status/Original At/Actions (short, fixed-format
+                content) stay compact. Supplier still wraps onto multiple lines for
+                long names (no truncate/nowrap here), same as it always has. */}
+            <col style={{ width: '190px' }} />
+            {/* Contract No. itself never truncates or wraps — it's shrink-0 in
+                ContractNoCell, so it needs actual room rather than relying on ellipsis
+                like the remark next to it. */}
+            <col style={{ width: '170px' }} />
+            <col style={{ width: '170px' }} />
             {variant === 'browse' ? (
               <>
-                <col style={{ width: '135px' }} />
-                <col style={{ width: '175px' }} />
+                {/* Expire Date is shown in full, never truncated. */}
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '120px' }} />
               </>
             ) : (
               <>
-                <col style={{ width: '175px' }} />
-                <col style={{ width: '195px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '180px' }} />
               </>
             )}
-            <col style={{ width: '190px' }} />
+            <col style={{ width: '130px' }} />
           </colgroup>
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="px-6 py-3 text-center">Supplier</th>
-              <th className="px-6 py-3 text-left">Contract No.</th>
-              <th className="px-6 py-3 text-center">Type</th>
+            <tr className="border-b border-brand-200 bg-brand-50 text-base font-bold uppercase tracking-wide text-brand-800">
+              <th className="px-4 py-3.5 text-center">Supplier</th>
+              <th className="px-4 py-3.5 text-left">Contract No.</th>
+              <th className="px-4 py-3.5 text-center">Type</th>
               {variant === 'browse' ? (
                 <>
-                  <th className="px-6 py-3 text-center">Expire Date</th>
-                  <th className="px-6 py-3 text-center">Status</th>
+                  <th className="px-4 py-3.5 text-center">Expire Date</th>
+                  <th className="px-4 py-3.5 text-center">Status</th>
+                  <th className="px-4 py-3.5 text-center">Original At</th>
                 </>
               ) : (
                 <>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-center">Updated By</th>
+                  <th className="px-4 py-3.5 text-center">Status</th>
+                  <th className="px-4 py-3.5 text-center">Updated By</th>
                 </>
               )}
-              <th className="px-6 py-3" />
+              <th className="px-4 py-3.5" />
             </tr>
           </thead>
           <tbody>
@@ -535,12 +607,22 @@ export default function ContractTable({
               // child/"sub item" row shares its own master's color via the same
               // groupIndex, see buildRowMeta above.
               const zebraBg = groupIndex % 2 === 0 ? 'bg-slate-50' : 'bg-white';
-              // All Job/Home: creator, `view` permission, or one of the 3 approvers all
-              // grant access (see lib/confidentialAccess.js) — same rule the backend
-              // re-checks. Everywhere else: confidential contracts require the view
-              // permission, full stop, unrelated to who created the request. Non-
-              // confidential contracts are never restricted either way.
-              const restricted = checkJobPermission ? !hasConfidentialAccess(contract, user) : !!contract.confidentiality && !user?.view;
+              // All Job/Home (checkJobPermission) and Approval/Legal Waiting+History
+              // (approvalMode — set directly for Approval, or via legalMode for Legal,
+              // see ContractListPage.jsx) all use the richer creator/`view`/one-of-3-
+              // approvers rule (see lib/confidentialAccess.js, mirrors the backend's own
+              // check exactly) — Approval's rows are already filtered server-side to
+              // this viewer's own approval stage, so the approver-match arm is what
+              // actually grants them access here, same as it always has; Legal has no
+              // such built-in relationship to the contract, so being `legal` alone no
+              // longer grants a free pass (the backend now enforces this the same way —
+              // see contractRequestHelper.js's hasConfidentialAccess). Everywhere else
+              // (My Job, My History, ...) confidential contracts require the view
+              // permission, full stop. Non-confidential contracts are never restricted.
+              const restricted =
+                checkJobPermission || approvalMode
+                  ? !hasConfidentialAccess(contract, user)
+                  : !!contract.confidentiality && !user?.view;
               // Company groups get a thicker rule below their last row; master/child groups
               // within the same company get a thin rule; rows sharing a master group otherwise
               // sit flush against each other so the renew/amend/claim history reads as one block.
@@ -557,14 +639,14 @@ export default function ContractTable({
                 <React.Fragment key={contract.id}>
                   <tr className={`${rowBorder} ${zebraBg} hover:bg-slate-100`}>
                     {isNewCompany && (
-                      <td rowSpan={companyRowSpan} className="border-r border-slate-100 px-6 py-1.5 align-top font-medium text-navy">
+                      <td rowSpan={companyRowSpan} className="border-r border-slate-100 px-4 py-1.5 align-top font-medium text-navy">
                         {contract.supplier}
                       </td>
                     )}
-                    <td className="px-6 py-1.5 text-left align-top">
+                    <td className="px-4 py-1.5 text-left align-top">
                       <ContractNoCell contractNo={contract.contractNo} remark={contract.remark} confidentiality={contract.confidentiality} />
                     </td>
-                    <td className="px-6 py-1.5 text-center align-top">
+                    <td className="px-4 py-1.5 text-center align-top">
                       {/* Unlike Supplier's rowSpan merge above, Type/Purpose isn't merged
                           across a master's renew/amend/claim/terminate child rows — each
                           is its own contract_request with its own type/purpose, so every
@@ -579,7 +661,7 @@ export default function ContractTable({
                             {contract.type}
                           </div>
                           {contract.purpose && (
-                            <div title={contract.purpose} className="truncate text-xs text-slate-400">
+                            <div title={contract.purpose} className="truncate text-base text-slate-400">
                               {contract.purpose}
                             </div>
                           )}
@@ -588,29 +670,42 @@ export default function ContractTable({
                     </td>
                     {variant === 'browse' ? (
                       <>
-                        <td className="px-6 py-1.5 align-top text-slate-600">
+                        <td className="px-4 py-1.5 text-center align-top text-slate-600">
+                          {/* Always shown in full, never truncated — unlike the other
+                              columns below, a clipped expiry date is actively misleading. */}
                           {contract.expireDate && (
-                            <span className="inline-flex items-center gap-1.5">
-                              <CalendarDays size={15} className="text-slate-400" /> {contract.expireDate}
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                              <CalendarDays size={15} className="shrink-0 text-slate-400" /> {contract.expireDate}
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-1.5 text-center align-top">
+                        <td className="px-4 py-1.5 text-center align-top">
                           <StatusBadge status={contract.status} />
+                        </td>
+                        <td className="px-4 py-1.5 text-center align-top text-slate-600">
+                          {/* False (default) = with the requestor's own section (the
+                              "owner"); true = confirmed physically at Legal — toggled via
+                              the More menu below (Original At Legal/Owner). Only ever
+                              meaningful once the contract has reached Signed. */}
+                          {(contract.status === 'Signed' || contract.status === 'Terminated') && (
+                            <span title={contract.originalAtLegal ? 'Legal' : contract.section} className="block truncate">
+                              {contract.originalAtLegal ? 'Legal' : contract.section}
+                            </span>
+                          )}
                         </td>
                       </>
                     ) : (
                       <>
-                        <td className="px-6 py-1.5 text-center align-top">
+                        <td className="px-4 py-1.5 text-center align-top">
                           <StatusBadge status={contract.status} />
                         </td>
-                        <td className="px-6 py-1.5 text-center align-top text-slate-600">
+                        <td className="px-4 py-1.5 text-center align-top text-slate-600">
                           {contract.updatedName && (
                             <>
                               <div title={contract.updatedName} className="truncate font-semibold text-slate-700">
                                 {contract.updatedName}
                               </div>
-                              <div className="whitespace-nowrap text-xs text-slate-400">{formatDateTime(contract.updatedAt)}</div>
+                              <div className="whitespace-nowrap text-base text-slate-400">{formatDateTime(contract.updatedAt)}</div>
                             </>
                           )}
                         </td>
@@ -635,9 +730,23 @@ export default function ContractTable({
                       onClaimNote={() => onClaimNote?.(contract)}
                       onTerminate={() => onTerminate?.(contract)}
                       showLegalComment={
-                        enableEdit && (contract.status === 'Signed' || contract.status === 'Drafted') && !!user?.legal && !contract.legalCheck
+                        allowLegalComment &&
+                        enableEdit &&
+                        (contract.status === 'Signed' || contract.status === 'Drafted') &&
+                        !!user?.legal &&
+                        !contract.legalCheck
                       }
                       onLegalComment={() => onLegalComment?.(contract)}
+                      // Home only (variant="browse") — offered on any Signed row, and on a
+                      // Terminated row only for legal users (by then a requestor no longer
+                      // has anything to manage on it, but Legal still needs to record where
+                      // the closed-out original ends up filed).
+                      showOriginalAtToggle={
+                        variant === 'browse' && (contract.status === 'Signed' || (contract.status === 'Terminated' && !!user?.legal))
+                      }
+                      originalAtLegal={!!contract.originalAtLegal}
+                      onOriginalAtToggle={() => setOriginalAtConfirm({ id: contract.id, legal: !contract.originalAtLegal })}
+                      moreAlwaysActive={variant === 'browse' && !!user?.legal}
                       approvalMode={approvalMode}
                       onView={() => onView?.(contract.id)}
                       restricted={restricted}
@@ -649,17 +758,18 @@ export default function ContractTable({
                   {variant === 'browse' &&
                     contract.documents?.map((doc, index) => (
                       <tr key={doc} className={`border-b border-slate-100 ${zebraBg} text-slate-500 last:border-0`}>
-                        <td className="px-6 py-2" />
-                        <td className="px-6 py-2">└&nbsp;&nbsp;{doc}</td>
-                        <td className="px-6 py-2" />
-                        <td className="px-6 py-2">
-                          <span className="inline-flex items-center gap-1.5">
-                            <CalendarDays size={15} className="text-slate-400" /> {DOCUMENT_DATES[index]}
+                        <td className="px-4 py-2" />
+                        <td className="px-4 py-2">└&nbsp;&nbsp;{doc}</td>
+                        <td className="px-4 py-2" />
+                        <td className="px-4 py-2">
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                            <CalendarDays size={15} className="shrink-0 text-slate-400" /> {DOCUMENT_DATES[index]}
                           </span>
                         </td>
-                        <td className="px-6 py-2">
+                        <td className="px-4 py-2">
                           <StatusBadge status={index === 1 ? 'Near Expiry' : 'Active'} />
                         </td>
+                        <td className="px-4 py-2" />
                         <RowActions contractNo={doc} restricted={restricted} alwaysShowMore={variant === 'browse'} />
                       </tr>
                     ))}
@@ -671,6 +781,14 @@ export default function ContractTable({
       </div>
 
       {!contracts.length && <div className="py-16 text-center text-slate-400">No contracts found</div>}
+
+      <ConfirmModal
+        open={!!originalAtConfirm}
+        message={originalAtConfirm?.legal ? 'สัญญาอยู่ที่ Legal ใช่ไหม?' : 'สัญญาอยู่ที่ Owner ใช่ไหม?'}
+        busy={originalAtSaving}
+        onConfirm={handleOriginalAtConfirm}
+        onCancel={() => setOriginalAtConfirm(null)}
+      />
     </section>
   );
 }

@@ -26,11 +26,14 @@ export default function DownloadFormPage() {
   const activeForm = forms.find(f => f.id === activeId);
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-slate-50">
-      <PageContainer>
-        <div className="mb-5">
+    <div className="min-h-[calc(100vh-4rem)] bg-brand-100">
+      {/* -mt-7 fully cancels PageContainer's own py-7 top padding — same fix applied
+          to SectionLayout.jsx and HomeLayout.jsx. */}
+      <div className=" ">
+        <PageContainer>
+        <div className="mb-5  ">
           <h1 className="text-2xl font-bold text-navy">DOWNLOAD FORM</h1>
-          <p className="mt-1 text-sm text-slate-500">ดาวน์โหลดแบบฟอร์มสัญญาแยกตามประเภทและรายการเอกสาร</p>
+          <p className="mt-1 text-base ">ดาวน์โหลดแบบฟอร์มสัญญาแยกตามประเภทและรายการเอกสาร</p>
         </div>
 
         {loading ? (
@@ -43,7 +46,7 @@ export default function DownloadFormPage() {
             <aside className="overflow-hidden rounded-xl2 border border-slate-200 bg-white shadow-card">
               {/* <div className="border-b border-slate-100 px-5 py-4">
                 <div className="font-bold text-navy">Documents</div>
-                <div className="mt-0.5 text-xs text-slate-400">
+                <div className="mt-0.5 text-base text-slate-400">
                   You have {forms.reduce((sum, f) => sum + f.items.length, 0)} documents
                 </div>
               </div> */}
@@ -60,8 +63,8 @@ export default function DownloadFormPage() {
                           active ? 'border-brand-600 bg-brand-50/60' : 'border-transparent hover:bg-slate-50'
                         }`}
                       >
-                        <div className={`text-sm font-semibold ${active ? 'text-brand-700' : 'text-navy'}`}>{f.type}</div>
-                        <div className="mt-1 truncate text-xs text-slate-400">
+                        <div className={`text-base font-semibold ${active ? 'text-brand-700' : 'text-navy'}`}>{f.type}</div>
+                        <div className="mt-1 truncate text-base text-slate-400">
                           {/* {f.items.length} form{f.items.length === 1 ? '' : 's'} · */}
                            {f.typeThai}
                         </div>
@@ -85,7 +88,7 @@ export default function DownloadFormPage() {
                   </span>
                   <div>
                     <div className="font-bold text-navy">{activeForm.type}</div>
-                    {activeForm.typeThai && <div className="whitespace-pre-line text-sm text-slate-500">{activeForm.typeThai}</div>}
+                    {activeForm.typeThai && <div className="whitespace-pre-line text-base text-slate-500">{activeForm.typeThai}</div>}
                   </div>
                 </header>
 
@@ -96,10 +99,10 @@ export default function DownloadFormPage() {
                     {activeForm.items.map((item, index) => (
                       <li key={item.id} className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex gap-3">
-                          <span className="text-sm font-semibold text-slate-400">{index + 1}.</span>
+                          <span className="text-base font-semibold text-slate-400">{index + 1}.</span>
                           <div>
                             <div className="font-semibold text-navy">{item.name}</div>
-                            {item.description && <div className="mt-1 whitespace-pre-line text-sm text-slate-500">{item.description}</div>}
+                            {item.description && <div className="mt-1 whitespace-pre-line text-base text-slate-500">{item.description}</div>}
                           </div>
                         </div>
 
@@ -108,7 +111,7 @@ export default function DownloadFormPage() {
                             <button
                               type="button"
                               onClick={() => downloadUploadFileFromPath(item.files.eng, `${item.name} (ENG)`)}
-                              className="flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-600"
+                              className="flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-base font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-600"
                             >
                               <FileDown size={15} /> ENG
                             </button>
@@ -117,7 +120,7 @@ export default function DownloadFormPage() {
                             <button
                               type="button"
                               onClick={() => downloadUploadFileFromPath(item.files.tha, `${item.name} (THA)`)}
-                              className="flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-600"
+                              className="flex h-10 items-center gap-2 rounded-2xl border border-slate-200 px-4 text-base font-semibold text-slate-600 hover:border-brand-300 hover:text-brand-600"
                             >
                               <FileDown size={15} /> THA
                             </button>
@@ -126,7 +129,7 @@ export default function DownloadFormPage() {
                             <button
                               type="button"
                               onClick={() => downloadUploadFile(checkSheet.fileId, checkSheet.fileName)}
-                              className="flex h-10 items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-600 hover:border-violet-300 hover:bg-violet-100"
+                              className="flex h-10 items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 text-base font-semibold text-violet-600 hover:border-violet-300 hover:bg-violet-100"
                             >
                               <ClipboardCheck size={15} /> Check Sheet
                             </button>
@@ -141,6 +144,7 @@ export default function DownloadFormPage() {
           </div>
         )}
       </PageContainer>
+      </div>
     </div>
   );
 }

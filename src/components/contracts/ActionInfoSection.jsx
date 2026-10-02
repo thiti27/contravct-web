@@ -99,7 +99,7 @@ export default function ActionInfoSection({ formik, remark, readOnly = false }) 
         </span>
         <div>
           <div className="font-bold text-navy">{actionLabel} Information</div>
-          <div className="text-sm text-slate-500">{SECTION_SUBTITLE[remark] || 'Background, detail, and supporting attachments.'}</div>
+          <div className="text-base text-slate-500">{SECTION_SUBTITLE[remark] || 'Background, detail, and supporting attachments.'}</div>
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export default function ActionInfoSection({ formik, remark, readOnly = false }) 
             />
 
             <div>
-              <div className="mb-2 text-sm font-semibold text-navy">Original Period</div>
+              <div className="mb-2 text-base font-semibold text-navy">Original Period</div>
               {/* Read-only, always disabled — pulled from the referenced contract
                   (linked_master_id) server-side, never editable here. */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -157,7 +157,7 @@ export default function ActionInfoSection({ formik, remark, readOnly = false }) 
             </div>
 
             <div>
-              <div className="mb-2 text-sm font-semibold text-navy">New Period</div>
+              <div className="mb-2 text-base font-semibold text-navy">New Period</div>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <DateField
                   label="Contract Start Date"
@@ -228,12 +228,12 @@ export default function ActionInfoSection({ formik, remark, readOnly = false }) 
               <div className="rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/20 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-navy">Attach file</div>
-                    <div className="text-xs text-slate-500">Upload supporting files for this {actionLabel}.</div>
+                    <div className="text-base font-semibold text-navy">Attach file</div>
+                    <div className="text-base text-slate-500">Upload supporting files for this {actionLabel}.</div>
                   </div>
                   {!readOnly && (
                     <label
-                      className={`flex shrink-0 items-center gap-2 rounded-xl border border-brand-200 bg-white px-3 py-2 text-xs font-semibold text-brand-600 ${
+                      className={`flex shrink-0 items-center gap-2 rounded-xl border border-brand-200 bg-white px-3 py-2 text-base font-semibold text-brand-600 ${
                         uploading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-brand-50'
                       }`}
                     >
@@ -253,15 +253,15 @@ export default function ActionInfoSection({ formik, remark, readOnly = false }) 
                   )}
                 </div>
 
-                {fileError && <p className="mt-2 text-xs font-medium text-rose-500">{fileError}</p>}
+                {fileError && <p className="mt-2 text-base font-medium text-rose-500">{fileError}</p>}
 
                 <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
                   {(values.actionFiles || []).length === 0 ? (
-                    <p className="text-sm text-slate-400">No files attached.</p>
+                    <p className="text-base text-slate-400">No files attached.</p>
                   ) : (
                     <ul className="space-y-1.5">
                       {values.actionFiles.map(file => (
-                        <li key={file.id} className="flex items-center gap-2 text-sm">
+                        <li key={file.id} className="flex items-center gap-2 text-base">
                           <FileText size={15} className="shrink-0 text-brand-600" />
                           <button
                             type="button"

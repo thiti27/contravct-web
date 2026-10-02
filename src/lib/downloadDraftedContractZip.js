@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { generateContractRequisitionFormPdfBlob } from '../pdf/downloadContractRequisitionFormPdf';
+import { generateConstructionRiskChecklistPdfBlob } from '../pdf/downloadConstructionRiskChecklistPdf';
 import { fetchContractTypes, fetchGlobalDocuments, fetchUploadBlob, fetchUploadBlobFromPath } from './api';
 import { safeZipEntryName as safeName, triggerZipDownload } from './zipDownload';
 
@@ -34,6 +35,16 @@ export async function downloadDraftedContractZip(data, contractTypeLabel) {
   // is easy to miss/skip past when someone's just skimming an extracted zip.
   const { blob: pdfBlob, fileName: pdfFileName } = await generateContractRequisitionFormPdfBlob(data, contractTypeLabel);
   zip.file(safeName(`1_${pdfFileName}`), pdfBlob);
+
+  // Only present when this contract's Purpose was set via the Construction Risk
+  // Classification Checklist popup — i.e. the selected contract type had a purpose
+  // classified High or Low risk (contract_type_purposes.risk_level) and the requestor
+  // actually completed the assessment (see ConstructionRiskModal.jsx). Grouped with the
+  // form itself (still "1_") since both are generated reports, not signer attachments.
+  if (data.constructionRiskAnswers) {
+    const { blob: riskBlob, fileName: riskFileName } = await generateConstructionRiskChecklistPdfBlob(data);
+    zip.file(safeName(`1_${riskFileName}`), riskBlob);
+  }
 
   const categoryFiles = ZIP_DOCUMENT_CATEGORIES.flatMap(({ key, label }) =>
     (data.documents?.[key]?.files || []).map(file => ({ label, file }))

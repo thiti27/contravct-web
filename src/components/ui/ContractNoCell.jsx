@@ -19,7 +19,7 @@ export default function ContractNoCell({ contractNo, remark, confidentiality }) 
         <span className="shrink-0 whitespace-nowrap font-semibold text-slate-700">{contractNo || '-'}</span>
         <ConfidentialMark confidentiality={confidentiality} />
         {remarkLabel && (
-          <span title={remarkLabel} className="min-w-0 truncate text-xs font-normal text-slate-400">
+          <span title={remarkLabel} className="min-w-0 truncate text-base font-normal text-slate-400">
             ({remarkLabel})
           </span>
         )}

@@ -47,12 +47,12 @@ export default function ResultModal({ open, variant = 'success', title, message,
         </div>
 
         <h2 className="text-lg font-bold text-navy">{title || config.title}</h2>
-        {message && <p className="mt-2 text-sm text-slate-500">{message}</p>}
+        {message && <p className="mt-2 text-base text-slate-500">{message}</p>}
 
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 h-11 w-full rounded-2xl bg-brand-600 text-sm font-semibold text-white shadow-soft hover:bg-brand-700"
+          className="mt-6 h-11 w-full rounded-2xl bg-brand-600 text-base font-semibold text-white shadow-soft hover:bg-brand-700"
         >
           Close
         </button>
